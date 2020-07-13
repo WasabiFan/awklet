@@ -7,6 +7,7 @@ use regex::Regex;
 lazy_static! {
     // TODO: are literals beginning with dot (e.g., .7) valid?
     static ref NUMERIC_LITERAL_REGEX: Regex = Regex::new("-?\\d+(\\.\\d*)?(e(\\+|-)?\\d+)?").unwrap();
+    static ref IDENTIFIER_REGEX: Regex = Regex::new("[a-zA-Z_][a-zA-Z_\\d]*").unwrap();
 }
 
 #[derive(Debug)]
@@ -26,13 +27,28 @@ fn try_extract_token_at_start<'t>(source: &'t str, token_regex: &Regex) -> Optio
 
 fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
     let matched_str = try_extract_token_at_start(current_source, &*NUMERIC_LITERAL_REGEX)?;
+    let num_consumed_bytes = matched_str.len();
+
+    if let Some(_) = try_consume_identifier(&current_source[num_consumed_bytes..]) {
+        return None;
+    }
+
     let num = matched_str.parse().ok()?;
 
-    Some((matched_str.len(), Token::NumericLiteral(num)))
+    Some((num_consumed_bytes, Token::NumericLiteral(num)))
+}
+
+fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*IDENTIFIER_REGEX)?;
+
+    Some((
+        matched_str.len(),
+        Token::Identifier(String::from(matched_str)),
+    ))
 }
 
 fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
-    try_consume_numeric_literal(&current_source)
+    try_consume_numeric_literal(&current_source).or_else(|| try_consume_identifier(current_source))
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
