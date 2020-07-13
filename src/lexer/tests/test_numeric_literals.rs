@@ -62,3 +62,39 @@ fn test_numeric_decimal_ending_with_dot() -> Result<(), TokenizeError> {
 
     Ok(())
 }
+
+#[test]
+fn test_numeric_multiple() -> Result<(), TokenizeError> {
+    let tokens = tokenize("5 10")?;
+
+    assert_eq!(
+        tokens,
+        vec![Token::NumericLiteral(5.), Token::NumericLiteral(10.)]
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_numeric_multiple_leading_space() -> Result<(), TokenizeError> {
+    let tokens = tokenize(" 5 10")?;
+
+    assert_eq!(
+        tokens,
+        vec![Token::NumericLiteral(5.), Token::NumericLiteral(10.)]
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_numeric_multiple_trailing_space() -> Result<(), TokenizeError> {
+    let tokens = tokenize("5 10 ")?;
+
+    assert_eq!(
+        tokens,
+        vec![Token::NumericLiteral(5.), Token::NumericLiteral(10.)]
+    );
+
+    Ok(())
+}

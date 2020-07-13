@@ -9,6 +9,7 @@ lazy_static! {
     static ref NUMERIC_LITERAL_REGEX: Regex = Regex::new("-?\\d+(\\.\\d*)?(e(\\+|-)?\\d+)?").unwrap();
     static ref STRING_LITERAL_REGEX: Regex = Regex::new("\"\"|\"([^\"]*(\\\\\")?)*[^\\\\]\"").unwrap();
     static ref IDENTIFIER_REGEX: Regex = Regex::new("[a-zA-Z_][a-zA-Z_\\d]*").unwrap();
+    static ref BRACE_OR_PAREN_REGEX: Regex = Regex::new("\\{|\\}|\\(|\\)").unwrap();
 }
 
 #[derive(Debug)]
@@ -35,7 +36,6 @@ fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
     }
 
     let num = matched_str.parse().ok()?;
-
     Some((num_consumed_bytes, Token::NumericLiteral(num)))
 }
 
@@ -58,10 +58,25 @@ fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
     ))
 }
 
+fn try_consume_brace_or_paren(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*BRACE_OR_PAREN_REGEX)?;
+
+    let token = match matched_str {
+        "(" => Token::OpenParen,
+        ")" => Token::CloseParen,
+        "{" => Token::OpenBrace,
+        "}" => Token::CloseBrace,
+        _ => return None,
+    };
+
+    Some((matched_str.len(), token))
+}
+
 fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
     try_consume_numeric_literal(&current_source)
         .or_else(|| try_consume_string_literal(current_source))
         .or_else(|| try_consume_identifier(current_source))
+        .or_else(|| try_consume_brace_or_paren(current_source))
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {

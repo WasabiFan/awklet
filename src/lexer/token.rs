@@ -6,4 +6,8 @@ pub enum Token {
 
     // Core language
     Identifier(String),
+    OpenParen,
+    CloseParen,
+    OpenBrace,
+    CloseBrace,
 }
