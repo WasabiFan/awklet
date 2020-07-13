@@ -11,6 +11,7 @@ pub enum Token {
     OpenBrace,
     CloseBrace,
     Comma,
+    StatementSeparator,
 
     FieldReference,
 

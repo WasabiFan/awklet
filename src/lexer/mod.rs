@@ -12,6 +12,8 @@ lazy_static! {
     static ref BRACE_OR_PAREN_REGEX: Regex = Regex::new("\\{|\\}|\\(|\\)").unwrap();
     static ref MATH_OPERATOR_REGEX: Regex = Regex::new("\\+\\+|--|\\+=|-=|\\+|-|\\*|/|%|=").unwrap();
     static ref COMMA_REGEX: Regex = Regex::new(",").unwrap();
+    // Statement separator coalesces adjacent separators and eats intermediate newlines
+    static ref STATEMENT_SEPARATOR_REGEX: Regex = Regex::new("((\n|;) *)+").unwrap();
     static ref FIELD_REFERENCE_REGEX: Regex = Regex::new("\\$").unwrap();
 }
 
@@ -102,6 +104,11 @@ fn try_consume_comma(current_source: &str) -> Option<(usize, Token)> {
     Some((matched_str.len(), Token::Comma))
 }
 
+fn try_consume_statement_separator(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*STATEMENT_SEPARATOR_REGEX)?;
+    Some((matched_str.len(), Token::StatementSeparator))
+}
+
 fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
     let matched_str = try_extract_token_at_start(current_source, &*FIELD_REFERENCE_REGEX)?;
     Some((matched_str.len(), Token::FieldReference))
@@ -109,6 +116,7 @@ fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
 
 fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
     try_consume_numeric_literal(&current_source)
+        .or_else(|| try_consume_statement_separator(current_source))
         .or_else(|| try_consume_brace_or_paren(current_source))
         .or_else(|| try_consume_comma(current_source))
         .or_else(|| try_consume_field_reference(current_source))
@@ -117,9 +125,14 @@ fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
         .or_else(|| try_consume_identifier(current_source))
 }
 
+fn trim_leading_non_token_whitespace(source: &str) -> &str {
+    let non_token_whitespace: &[_] = &[' ', '\t'];
+    source.trim_start_matches(non_token_whitespace)
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut current_source = source.trim_start();
+    let mut current_source = trim_leading_non_token_whitespace(source);
 
     while !current_source.is_empty() {
         let (num_bytes_consumed, tok) =
@@ -128,7 +141,7 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
         current_source = &current_source[num_bytes_consumed..];
         tokens.push(tok);
 
-        current_source = current_source.trim_start();
+        current_source = trim_leading_non_token_whitespace(current_source)
     }
 
     Ok(tokens)
