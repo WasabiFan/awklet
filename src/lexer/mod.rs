@@ -40,12 +40,11 @@ pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
     let mut current_source = source.trim_start();
 
     while !current_source.is_empty() {
-        if let Some((num_bytes_consumed, tok)) = try_consume_token(&current_source) {
-            current_source = &current_source[num_bytes_consumed..];
-            tokens.push(tok);
-        } else {
-            return Err(TokenizeError::SyntaxError);
-        }
+        let (num_bytes_consumed, tok) =
+            try_consume_token(&current_source).ok_or(TokenizeError::SyntaxError)?;
+
+        current_source = &current_source[num_bytes_consumed..];
+        tokens.push(tok);
 
         current_source = current_source.trim_start();
     }
