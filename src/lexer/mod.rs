@@ -1,8 +1,8 @@
 mod token;
 use token::Token;
 
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
 
 lazy_static! {
     // TODO: are literals beginning with dot (e.g., .7) valid?
@@ -11,13 +11,17 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum TokenizeError {
-    SyntaxError
+    SyntaxError,
 }
 
 fn try_extract_token_at_start<'t>(source: &'t str, token_regex: &Regex) -> Option<&'t str> {
-    token_regex
-        .find(source)
-        .and_then(|m| if m.start() == 0 { Some(m.as_str()) } else { None })
+    token_regex.find(source).and_then(|m| {
+        if m.start() == 0 {
+            Some(m.as_str())
+        } else {
+            None
+        }
+    })
 }
 
 fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {

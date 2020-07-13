@@ -1,4 +1,4 @@
-use crate::lexer::{Token, tokenize, TokenizeError};
+use crate::lexer::{tokenize, Token, TokenizeError};
 
 #[test]
 fn test_syntax_error_invalid_token() {
