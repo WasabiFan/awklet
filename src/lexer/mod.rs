@@ -6,7 +6,7 @@ use regex::Regex;
 
 lazy_static! {
     // TODO: are literals beginning with dot (e.g., .7) valid?
-    static ref NUMERIC_LITERAL_REGEX: Regex = Regex::new("-?\\d+(.\\d*)?(e(\\+|-)?\\d+)?").unwrap();
+    static ref NUMERIC_LITERAL_REGEX: Regex = Regex::new("-?\\d+(\\.\\d*)?(e(\\+|-)?\\d+)?").unwrap();
 }
 
 #[derive(Debug)]
@@ -37,13 +37,17 @@ fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut current_source = source;
+    let mut current_source = source.trim_start();
 
-    if let Some((num_bytes_consumed, tok)) = try_consume_token(&current_source) {
-        current_source = &current_source[num_bytes_consumed..];
-        tokens.push(tok);
-    } else {
-        return Err(TokenizeError::SyntaxError);
+    while !current_source.is_empty() {
+        if let Some((num_bytes_consumed, tok)) = try_consume_token(&current_source) {
+            current_source = &current_source[num_bytes_consumed..];
+            tokens.push(tok);
+        } else {
+            return Err(TokenizeError::SyntaxError);
+        }
+
+        current_source = current_source.trim_start();
     }
 
     Ok(tokens)
