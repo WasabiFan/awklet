@@ -19,15 +19,6 @@ fn test_numeric_multi_digit_integer() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_numeric_negative_integer() -> Result<(), TokenizeError> {
-    let tokens = tokenize("-19")?;
-
-    assert_eq!(tokens, vec![Token::NumericLiteral(-19.)]);
-
-    Ok(())
-}
-
-#[test]
 fn test_numeric_decimal() -> Result<(), TokenizeError> {
     let tokens = tokenize("5.29")?;
 
