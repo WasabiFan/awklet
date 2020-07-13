@@ -23,12 +23,20 @@ fn try_extract_token_at_start<'t>(source: &'t str, token_regex: &Regex) -> Optio
     }
 }
 
+fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*NUMERIC_LITERAL_REGEX)?;
+    let num = matched_str.parse().ok()?;
+
+    Some((matched_str.len(), Token::NumericLiteral(num)))
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
     let mut tokens: Vec<Token> = Vec::new();
-    let current_source = source;
+    let mut current_source = source;
 
-    if let Some(consumed_chars) = try_extract_token_at_start(current_source, &*NUMERIC_LITERAL_REGEX) {
-        tokens.push(Token::NumericLiteral(consumed_chars.parse().unwrap()));
+    if let Some((num_bytes_consumed, tok)) = try_consume_numeric_literal(&current_source) {
+        current_source = &current_source[num_bytes_consumed..];
+        tokens.push(tok);
     }
 
     Ok(tokens)
