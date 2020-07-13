@@ -10,6 +10,9 @@ pub enum Token {
     CloseParen,
     OpenBrace,
     CloseBrace,
+    Comma,
+
+    FieldReference,
 
     // TODO: field reference
 

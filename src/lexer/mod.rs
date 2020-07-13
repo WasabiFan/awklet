@@ -11,6 +11,8 @@ lazy_static! {
     static ref IDENTIFIER_REGEX: Regex = Regex::new("[a-zA-Z_][a-zA-Z_\\d]*").unwrap();
     static ref BRACE_OR_PAREN_REGEX: Regex = Regex::new("\\{|\\}|\\(|\\)").unwrap();
     static ref MATH_OPERATOR_REGEX: Regex = Regex::new("\\+\\+|--|\\+=|-=|\\+|-|\\*|/|%|=").unwrap();
+    static ref COMMA_REGEX: Regex = Regex::new(",").unwrap();
+    static ref FIELD_REFERENCE_REGEX: Regex = Regex::new("\\$").unwrap();
 }
 
 #[derive(Debug)]
@@ -89,15 +91,27 @@ fn try_consume_math_operator(current_source: &str) -> Option<(usize, Token)> {
         "=" => Token::AssignEquals,
         "+=" => Token::PlusEquals,
         "-=" => Token::MinusEquals,
-        _ => return None,
+        _ => panic!("Regex matched unexpected token {}", matched_str),
     };
 
     Some((matched_str.len(), token))
 }
 
+fn try_consume_comma(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*COMMA_REGEX)?;
+    Some((matched_str.len(), Token::Comma))
+}
+
+fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*FIELD_REFERENCE_REGEX)?;
+    Some((matched_str.len(), Token::FieldReference))
+}
+
 fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
     try_consume_numeric_literal(&current_source)
         .or_else(|| try_consume_brace_or_paren(current_source))
+        .or_else(|| try_consume_comma(current_source))
+        .or_else(|| try_consume_field_reference(current_source))
         .or_else(|| try_consume_math_operator(current_source))
         .or_else(|| try_consume_string_literal(current_source))
         .or_else(|| try_consume_identifier(current_source))

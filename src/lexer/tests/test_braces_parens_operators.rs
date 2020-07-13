@@ -115,3 +115,22 @@ fn test_assignment() -> Result<(), TokenizeError> {
 
     Ok(())
 }
+
+#[test]
+fn test_field_reference_comma() -> Result<(), TokenizeError> {
+    let tokens = tokenize("print $2, $ 5")?;
+
+    assert_eq!(
+        tokens,
+        vec![
+            Token::Identifier(String::from("print")),
+            Token::FieldReference,
+            Token::NumericLiteral(2.),
+            Token::Comma,
+            Token::FieldReference,
+            Token::NumericLiteral(5.),
+        ]
+    );
+
+    Ok(())
+}
