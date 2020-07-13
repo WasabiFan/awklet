@@ -11,16 +11,13 @@ lazy_static! {
 
 #[derive(Debug)]
 pub enum TokenizeError {
-    // SyntaxError()
+    SyntaxError
 }
 
 fn try_extract_token_at_start<'t>(source: &'t str, token_regex: &Regex) -> Option<&'t str> {
-    if let Some(m) = token_regex.find(source) {
-        assert_eq!(m.start(), 0);
-        Some(m.as_str())
-    } else {
-        None
-    }
+    token_regex
+        .find(source)
+        .and_then(|m| if m.start() == 0 { Some(m.as_str()) } else { None })
 }
 
 fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
@@ -30,13 +27,19 @@ fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
     Some((matched_str.len(), Token::NumericLiteral(num)))
 }
 
+fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
+    try_consume_numeric_literal(&current_source)
+}
+
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
     let mut tokens: Vec<Token> = Vec::new();
     let mut current_source = source;
 
-    if let Some((num_bytes_consumed, tok)) = try_consume_numeric_literal(&current_source) {
+    if let Some((num_bytes_consumed, tok)) = try_consume_token(&current_source) {
         current_source = &current_source[num_bytes_consumed..];
         tokens.push(tok);
+    } else {
+        return Err(TokenizeError::SyntaxError);
     }
 
     Ok(tokens)
