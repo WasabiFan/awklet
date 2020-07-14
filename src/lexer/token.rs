@@ -3,6 +3,7 @@ pub enum Token {
     // Literals
     NumericLiteral(f64),
     StringLiteral(String),
+    RegexLiteral(String),
 
     // Core language
     Identifier(String),

@@ -34,7 +34,6 @@ fn test_basic_awk_program() -> Result<(), TokenizeError> {
     Ok(())
 }
 
-
 #[test]
 fn test_statement_separator() -> Result<(), TokenizeError> {
     let source = "BEGIN {

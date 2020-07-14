@@ -1,5 +1,5 @@
 mod token;
-use token::Token;
+pub use token::Token;
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -8,6 +8,7 @@ lazy_static! {
     // TODO: are numeric literals beginning with dot (e.g., .7) valid?
     static ref NUMERIC_LITERAL_REGEX: Regex = Regex::new("\\d+(\\.\\d*)?(e(\\+|-)?\\d+)?").unwrap();
     static ref STRING_LITERAL_REGEX: Regex = Regex::new("\"\"|\"([^\"]*(\\\\\")?)*[^\\\\]\"").unwrap();
+    static ref REGEX_LITERAL_REGEX: Regex = Regex::new("//|/([^/\\n]*(\\\\/)?)*[^\\\\]/").unwrap();
     static ref IDENTIFIER_REGEX: Regex = Regex::new("[a-zA-Z_][a-zA-Z_\\d]*").unwrap();
     static ref BRACE_OR_PAREN_REGEX: Regex = Regex::new("\\{|\\}|\\(|\\)").unwrap();
     static ref MATH_OPERATOR_REGEX: Regex = Regex::new("\\+\\+|--|\\+=|-=|\\+|-|\\*|/|%|=").unwrap();
@@ -52,6 +53,19 @@ fn try_consume_string_literal(current_source: &str) -> Option<(usize, Token)> {
     let unescaped_string = contained_string.replace("\\\"", "\"");
 
     Some((num_consumed_bytes, Token::StringLiteral(unescaped_string)))
+}
+
+fn try_consume_regex_literal(current_source: &str) -> Option<(usize, Token)> {
+    let matched_str = try_extract_token_at_start(current_source, &*REGEX_LITERAL_REGEX)?;
+    let num_consumed_bytes = matched_str.len();
+
+    // We have no good way to distinguish between between regex and e.g. division. A regex cannot
+    // continue onto multiple lines, and this can be used for disambiguation so long as there are
+    // not multiple division operators on one line.
+    let contained_regex = &matched_str[1..num_consumed_bytes - 1];
+    let unescaped_regex = contained_regex.replace("\\/", "/");
+
+    Some((num_consumed_bytes, Token::RegexLiteral(unescaped_regex)))
 }
 
 fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
@@ -116,6 +130,7 @@ fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
 
 fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
     try_consume_numeric_literal(&current_source)
+        .or_else(|| try_consume_regex_literal(current_source))
         .or_else(|| try_consume_statement_separator(current_source))
         .or_else(|| try_consume_brace_or_paren(current_source))
         .or_else(|| try_consume_comma(current_source))
