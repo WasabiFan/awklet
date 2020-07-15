@@ -77,10 +77,7 @@ fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
         _ => Token::Identifier(String::from(matched_str)),
     };
 
-    Some((
-        matched_str.len(),
-        token
-    ))
+    Some((matched_str.len(), token))
 }
 
 fn try_consume_brace_or_paren(current_source: &str) -> Option<(usize, Token)> {
