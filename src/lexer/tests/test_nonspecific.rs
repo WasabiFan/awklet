@@ -21,7 +21,7 @@ fn test_basic_awk_program() -> Result<(), TokenizeError> {
     assert_eq!(
         tokens,
         vec![
-            Token::Identifier(String::from("BEGIN")),
+            Token::BeginKeyword,
             Token::OpenBrace,
             Token::StatementSeparator,
             Token::Identifier(String::from("print")),
@@ -47,7 +47,7 @@ fn test_statement_separator() -> Result<(), TokenizeError> {
     assert_eq!(
         tokens,
         vec![
-            Token::Identifier(String::from("BEGIN")),
+            Token::BeginKeyword,
             Token::OpenBrace,
             Token::StatementSeparator,
             Token::Identifier(String::from("print")),

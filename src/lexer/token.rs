@@ -16,7 +16,9 @@ pub enum Token {
 
     FieldReference,
 
-    // TODO: field reference
+    // Keywords
+    BeginKeyword,
+    EndKeyword,
 
     // Unary operators
     Increment,

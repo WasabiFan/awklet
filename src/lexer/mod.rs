@@ -71,9 +71,15 @@ fn try_consume_regex_literal(current_source: &str) -> Option<(usize, Token)> {
 fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
     let matched_str = try_extract_token_at_start(current_source, &*IDENTIFIER_REGEX)?;
 
+    let token = match matched_str {
+        "BEGIN" => Token::BeginKeyword,
+        "END" => Token::EndKeyword,
+        _ => Token::Identifier(String::from(matched_str)),
+    };
+
     Some((
         matched_str.len(),
-        Token::Identifier(String::from(matched_str)),
+        token
     ))
 }
 
