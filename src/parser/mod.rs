@@ -2,6 +2,7 @@ mod ast;
 mod parse_error;
 
 mod action;
+mod expression;
 mod pattern;
 mod rule;
 
