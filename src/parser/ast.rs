@@ -62,9 +62,11 @@ pub enum UnOp {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    NumericLiteral(f64),
+    StringLiteral(String),
     FunctionCall(String, Vec<Expression>),
-    BinaryOperation(BinOp),
-    UnaryOperation(UnOp),
+    BinaryOperation(BinOp, Box<Expression>, Box<Expression>),
+    UnaryOperation(UnOp, Box<Expression>),
     FieldReference(Box<Expression>),
     VariableValue(String),
     Command(String, Vec<Expression>),

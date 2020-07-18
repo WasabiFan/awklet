@@ -8,6 +8,8 @@ fn parse_greedy_comma_separated_expressions(
     parse_expression(tokens).map_or_else(
         |_| Ok((0, vec![])),
         |(consumed_tokens, expression)| {
+            // TODO: support newline after comma
+            // TODO: do we need to know newline vs. semicolon?
             if let Some(Token::Comma) = tokens.get(consumed_tokens) {
                 let (remaining_consumed_tokens, remaining_exprs) =
                     parse_greedy_comma_separated_expressions(&tokens[consumed_tokens + 1..])?;
@@ -21,7 +23,7 @@ fn parse_greedy_comma_separated_expressions(
     )
 }
 
-pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
+fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
     let next_two = (tokens.get(0).ok_or(ParseError::SyntaxError)?, tokens.get(1));
     match next_two {
         (Token::Identifier(fn_name), Some(Token::OpenParen)) => {
@@ -38,8 +40,35 @@ pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseEr
             ))
         }
         (Token::Identifier(var_name), _) => Ok((1, Expression::VariableValue(var_name.clone()))),
+        (Token::NumericLiteral(val), _) => Ok((1, Expression::NumericLiteral(*val))),
+        (Token::Minus, Some(Token::NumericLiteral(val))) => {
+            Ok((2, Expression::NumericLiteral(-*val)))
+        }
+        (Token::FieldReference, _) => {
+            let remaining_tokens = &tokens[1..];
+            let (consumed_tokens, child_expression) =
+                parse_single_expression_unit(&remaining_tokens)?;
+            Ok((
+                1 + consumed_tokens,
+                Expression::FieldReference(Box::new(child_expression)),
+            ))
+        }
+        (Token::OpenParen, _) => {
+            let remaining_tokens = &tokens[1..];
+            let (consumed_tokens, inner_expression) = parse_expression(remaining_tokens)?;
+            if tokens.get(1 + consumed_tokens) != Some(&Token::CloseParen) {
+                return Err(ParseError::SyntaxError);
+            }
+
+            Ok((1 + consumed_tokens + 1, inner_expression))
+        }
+        (Token::StringLiteral(val), _) => Ok((1, Expression::StringLiteral(val.clone()))),
         _ => Err(ParseError::SyntaxError),
     }
+}
+
+pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
+    parse_single_expression_unit(tokens)
 }
 
 #[cfg(test)]
