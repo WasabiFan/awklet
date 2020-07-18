@@ -41,9 +41,14 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
         }
         (Token::Identifier(var_name), _) => Ok((1, Expression::VariableValue(var_name.clone()))),
         (Token::NumericLiteral(val), _) => Ok((1, Expression::NumericLiteral(*val))),
-        // TODO: support "minus" followed by other expression, as unary op
-        (Token::Minus, Some(Token::NumericLiteral(val))) => {
-            Ok((2, Expression::NumericLiteral(-*val)))
+        (Token::Minus, _) => {
+            let remaining_tokens = &tokens[1..];
+            let (consumed_tokens, child_expression) =
+                parse_single_expression_unit(&remaining_tokens)?;
+            Ok((
+                1 + consumed_tokens,
+                Expression::Negation(Box::new(child_expression)),
+            ))
         }
         (Token::FieldReference, _) => {
             let remaining_tokens = &tokens[1..];
@@ -176,8 +181,31 @@ mod tests {
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
 
-        assert_eq!(expression, Expression::NumericLiteral(-5.));
+        assert_eq!(
+            expression,
+            Expression::Negation(Box::new(Expression::NumericLiteral(5.)))
+        );
         assert_eq!(consumed_tokens, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_unary_negative_complex() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::Minus,
+            Token::OpenParen,
+            Token::NumericLiteral(5.),
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::Negation(Box::new(Expression::NumericLiteral(5.)))
+        );
+        assert_eq!(consumed_tokens, 4);
 
         Ok(())
     }
@@ -310,7 +338,7 @@ mod tests {
             Expression::FunctionCall(
                 String::from("foo"),
                 vec![
-                    Expression::NumericLiteral(-10.),
+                    Expression::Negation(Box::new(Expression::NumericLiteral(10.))),
                     Expression::FieldReference(Box::new(Expression::VariableValue(String::from(
                         "my_var_2"
                     ))))

@@ -63,6 +63,7 @@ pub enum UnOp {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     NumericLiteral(f64),
+    Negation(Box<Expression>),
     StringLiteral(String),
     FunctionCall(String, Vec<Expression>),
     BinaryOperation(BinOp, Box<Expression>, Box<Expression>),
