@@ -54,9 +54,5 @@ fn test_string_multiple_with_spacing() -> Result<(), TokenizeError> {
 fn test_string_syntax_error_unnmatched_quote() {
     let result = tokenize(" \"foo \\\"");
 
-    assert!(
-        matches!(result, Err(TokenizeError::SyntaxError)),
-        "result = {:?}",
-        result
-    );
+    assert_matches!(result, Err(TokenizeError::SyntaxError));
 }

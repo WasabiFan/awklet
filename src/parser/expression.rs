@@ -41,6 +41,7 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
         }
         (Token::Identifier(var_name), _) => Ok((1, Expression::VariableValue(var_name.clone()))),
         (Token::NumericLiteral(val), _) => Ok((1, Expression::NumericLiteral(*val))),
+        // TODO: support "minus" followed by other expression, as unary op
         (Token::Minus, Some(Token::NumericLiteral(val))) => {
             Ok((2, Expression::NumericLiteral(-*val)))
         }
@@ -153,6 +154,170 @@ mod tests {
             )
         );
         assert_eq!(consumed_tokens, 6);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_numeric_literal() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::NumericLiteral(5.)];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(expression, Expression::NumericLiteral(5.));
+        assert_eq!(consumed_tokens, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_negative_numeric_literal() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::Minus, Token::NumericLiteral(5.)];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(expression, Expression::NumericLiteral(-5.));
+        assert_eq!(consumed_tokens, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_item_paren() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::OpenParen,
+            Token::NumericLiteral(5.),
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(expression, Expression::NumericLiteral(5.));
+        assert_eq!(consumed_tokens, 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mismatched_paren_group() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::OpenParen, Token::NumericLiteral(5.)];
+
+        assert_matches!(
+            super::parse_expression(tokens),
+            Err(ParseError::SyntaxError)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_mismatched_function_call_parens() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::Identifier(String::from("foo")),
+            Token::OpenParen,
+            Token::NumericLiteral(5.),
+        ];
+
+        assert_matches!(
+            super::parse_expression(tokens),
+            Err(ParseError::SyntaxError)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_string_literal() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::StringLiteral(String::from("foobar"))];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::StringLiteral(String::from("foobar"))
+        );
+        assert_eq!(consumed_tokens, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_field_reference_numeric() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::FieldReference, Token::NumericLiteral(2.)];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::FieldReference(Box::new(Expression::NumericLiteral(2.)))
+        );
+        assert_eq!(consumed_tokens, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_function_call_within_paren() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::OpenParen,
+            Token::Identifier(String::from("foo")),
+            Token::OpenParen,
+            Token::Identifier(String::from("my_var_1")),
+            Token::Comma,
+            Token::Identifier(String::from("my_var_2")),
+            Token::CloseParen,
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::FunctionCall(
+                String::from("foo"),
+                vec![
+                    Expression::VariableValue(String::from("my_var_1")),
+                    Expression::VariableValue(String::from("my_var_2"))
+                ]
+            )
+        );
+        assert_eq!(consumed_tokens, 8);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_function_call() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::OpenParen,
+            Token::Identifier(String::from("foo")),
+            Token::OpenParen,
+            Token::OpenParen,
+            Token::Minus,
+            Token::NumericLiteral(10.),
+            Token::CloseParen,
+            Token::Comma,
+            Token::FieldReference,
+            Token::Identifier(String::from("my_var_2")),
+            Token::CloseParen,
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::FunctionCall(
+                String::from("foo"),
+                vec![
+                    Expression::NumericLiteral(-10.),
+                    Expression::FieldReference(Box::new(Expression::VariableValue(String::from(
+                        "my_var_2"
+                    ))))
+                ]
+            )
+        );
+        assert_eq!(consumed_tokens, 12);
 
         Ok(())
     }

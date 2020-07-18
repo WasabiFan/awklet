@@ -34,11 +34,7 @@ fn test_identifier_numbers() -> Result<(), TokenizeError> {
 fn test_identifier_no_leading_digit() {
     let result = tokenize("9foobar");
 
-    assert!(
-        matches!(result, Err(TokenizeError::SyntaxError)),
-        "result = {:?}",
-        result
-    );
+    assert_matches!(result, Err(TokenizeError::SyntaxError));
 }
 
 #[test]
