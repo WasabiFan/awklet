@@ -1,22 +1,22 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Ast {
     pub rules: Vec<Rule>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Rule {
     pub pattern: Pattern,
     pub action: Action,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum SingleConditionPattern {
     // TODO: would be nice to store regex as Regex, but that would make testing difficult.
     Regex(String),
     Expression(Expression),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Pattern {
     SingleCondition(SingleConditionPattern),
     Range(SingleConditionPattern, SingleConditionPattern),
@@ -26,13 +26,13 @@ pub enum Pattern {
     Empty,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Action {
     Empty,
     Present(Vec<Statement>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression(Expression),
     // TODO: control
@@ -42,7 +42,7 @@ pub enum Statement {
     // TODO: deletion statements
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BinOp {
     Add,
     Subtract,
@@ -54,13 +54,13 @@ pub enum BinOp {
     SubtractAssign,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum UnOp {
     Increment,
     Decrement,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     NumericLiteral(f64),
     Negation(Box<Expression>),
