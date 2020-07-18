@@ -2,6 +2,7 @@ mod ast;
 mod parse_error;
 
 mod action;
+mod pattern;
 mod rule;
 
 use crate::lexer::tokenize;
