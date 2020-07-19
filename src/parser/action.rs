@@ -21,7 +21,7 @@ pub fn parse_action(tokens: &[Token]) -> Result<(usize, Action), ParseError> {
 }
 
 pub fn parse_statements(tokens: &[Token]) -> Result<(usize, Vec<Statement>), ParseError> {
-    let mut position = 0usize;
+    let mut position = consume_all_statement_separators(tokens);
     let mut statements = Vec::new();
     while let Ok((consumed_tokens, statement)) = parse_statement(&tokens[position..]) {
         statements.push(statement);

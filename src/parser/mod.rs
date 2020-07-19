@@ -29,3 +29,59 @@ pub fn parse(source: &str) -> Result<Ast, ParseError> {
 
     Ok(Ast { rules })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::{ast::{Rule, Ast, Pattern, Action, Statement, BinOp, Expression, BuiltinCommand}, parse, parse_error::ParseError};
+
+    #[test]
+    fn test_parse_word_count() -> Result<(), ParseError> {
+        let program = "{
+            words += NF
+            chars += length + 1
+        }
+        END { print NR, words, chars }";
+
+        let ast = parse(program)?;
+
+        assert_eq!(
+            ast,
+            Ast {
+                rules: vec![
+                    Rule {
+                        pattern: Pattern::Empty,
+                        action: Action::Present(vec![
+                            Statement::Expression(Expression::BinaryOperation(
+                                BinOp::AddAssign,
+                                Box::new(Expression::VariableValue(String::from("words"))),
+                                Box::new(Expression::VariableValue(String::from("NF")))
+                            )),
+                            Statement::Expression(Expression::BinaryOperation(
+                                BinOp::AddAssign,
+                                Box::new(Expression::VariableValue(String::from("chars"))),
+                                Box::new(Expression::BinaryOperation(
+                                    BinOp::Add,
+                                    Box::new(Expression::VariableValue(String::from("length"))),
+                                    Box::new(Expression::NumericLiteral(1.))
+                                ))
+                            ))
+                        ])
+                    },
+                    Rule {
+                        pattern: Pattern::End,
+                        action: Action::Present(vec![
+                            Statement::Command(BuiltinCommand::Print, vec![
+                                Expression::VariableValue(String::from("NR")),
+                                Expression::VariableValue(String::from("words")),
+                                Expression::VariableValue(String::from("chars")),
+                            ])
+                        ])
+                    }
+                ]
+            }
+        );
+
+        Ok(())
+    }
+}
