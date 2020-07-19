@@ -52,6 +52,7 @@ pub enum BinOp {
     Assign,
     AddAssign,
     SubtractAssign,
+    Concatenate,
     CompareLess,
     CompareLessEquals,
     CompareEquals,

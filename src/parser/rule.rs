@@ -2,14 +2,16 @@ use crate::lexer::Token;
 use crate::parser::ast::Rule;
 use crate::parser::parse_error::ParseError;
 
+use super::utils::consume_all_statement_separators;
 use crate::parser::action::parse_action;
 use crate::parser::pattern::parse_pattern;
-use super::utils::consume_all_statement_separators;
 
 pub fn parse_rule(tokens: &[Token]) -> Result<(usize, Rule), ParseError> {
     let (pattern_consumed_tokens, pattern) = parse_pattern(&tokens)?;
     let (action_consumed_tokens, action) = parse_action(&tokens[pattern_consumed_tokens..])?;
-    let consumed_separators = consume_all_statement_separators(&tokens[pattern_consumed_tokens + action_consumed_tokens..]);
+    let consumed_separators = consume_all_statement_separators(
+        &tokens[pattern_consumed_tokens + action_consumed_tokens..],
+    );
     return Ok((
         pattern_consumed_tokens + action_consumed_tokens + consumed_separators,
         Rule { pattern, action },

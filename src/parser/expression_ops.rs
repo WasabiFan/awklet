@@ -4,6 +4,7 @@ use super::{
 };
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
+use std::ops::RangeBounds;
 
 pub struct OperatorHierarchyParser {
     op_tree_roots: Vec<PartialAstNode>,
@@ -18,7 +19,7 @@ enum OpPrecedenceClass {
     // ArrayMembership,
     // Matching,
     RelationalAndRedirection,
-    // TODO: How do we handle string concat?
+    StringConcat,
     AddSub,
     MultDivMod,
     UnaryPlusMinusNot,
@@ -36,6 +37,7 @@ impl OpPrecedenceClass {
             OpPrecedenceClass::UnaryPlusMinusNot,
             OpPrecedenceClass::MultDivMod,
             OpPrecedenceClass::AddSub,
+            OpPrecedenceClass::StringConcat,
             OpPrecedenceClass::RelationalAndRedirection,
             OpPrecedenceClass::Assignment,
         ]
@@ -78,6 +80,9 @@ impl OpPrecedenceClass {
 
 enum OperatorOperandType {
     Binary,
+    // BinaryConcat is specific to string concatenation, done by putting expressions adjacent to
+    // each other. BinaryConcat is special-cased.
+    BinaryConcat,
     UnaryPrefix,
     UnaryPostfix,
 }
@@ -87,6 +92,7 @@ impl OperatorOperandType {
         match class {
             OpPrecedenceClass::Assignment => OperatorOperandType::Binary,
             OpPrecedenceClass::RelationalAndRedirection => OperatorOperandType::Binary,
+            OpPrecedenceClass::StringConcat => OperatorOperandType::BinaryConcat,
             OpPrecedenceClass::AddSub => OperatorOperandType::Binary,
             OpPrecedenceClass::MultDivMod => OperatorOperandType::Binary,
             OpPrecedenceClass::UnaryPlusMinusNot => OperatorOperandType::UnaryPrefix,
@@ -178,29 +184,72 @@ impl OperatorParser {
         }
     }
 
+    fn get_root_expression_if_present(&self, pos: isize) -> Option<&Expression> {
+        self.get_op_tree_entry(pos).and_then(|n| {
+            if let PartialAstNode::ParsedExpression(exp) = n {
+                Some(exp)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn replace_roots_with_expression<R>(&mut self, root_range: R, expr: Expression) -> usize
+    where
+        R: RangeBounds<usize> + Clone,
+    {
+        let replacement_slice = &[PartialAstNode::ParsedExpression(expr)];
+        self.op_tree_roots
+            .splice(root_range.clone(), replacement_slice.iter().cloned());
+
+        match &root_range.start_bound() {
+            std::ops::Bound::Excluded(&i) => i + 1,
+            std::ops::Bound::Included(&i) => i,
+            std::ops::Bound::Unbounded => 0,
+        }
+    }
+
     fn coalesce_operator_class(&mut self, class: OpPrecedenceClass) -> Result<(), ParseError> {
-        // TODO: associativity direction
+        match class {
+            OpPrecedenceClass::StringConcat => Ok(self.concat_adjacent_expressions()),
+            _ => self.coalesce_discrete_token_class(class),
+        }
+    }
+
+    fn concat_adjacent_expressions(&mut self) {
+        let mut i = 0usize;
+        while i < self.op_tree_roots.len() {
+            let window = (self.op_tree_roots.get(i), self.op_tree_roots.get(i + 1));
+
+            if let (
+                Some(PartialAstNode::ParsedExpression(first)),
+                Some(PartialAstNode::ParsedExpression(second)),
+            ) = window
+            {
+                let expr = Expression::BinaryOperation(
+                    BinOp::Concatenate,
+                    Box::new(first.clone()),
+                    Box::new(second.clone()),
+                );
+
+                i = self.replace_roots_with_expression(i..=i + 1, expr)
+            } else {
+                i = i + 1;
+            }
+        }
+    }
+
+    fn coalesce_discrete_token_class(
+        &mut self,
+        class: OpPrecedenceClass,
+    ) -> Result<(), ParseError> {
         let mut start = 0usize;
         while let Some((operator_position, token)) = self.find_next_op_token_of_class(class, start)
         {
-            let preceding_expression = self
-                .get_op_tree_entry(operator_position as isize - 1)
-                .and_then(|n| {
-                    if let PartialAstNode::ParsedExpression(exp) = n {
-                        Some(exp)
-                    } else {
-                        None
-                    }
-                });
-            let following_expression = self
-                .get_op_tree_entry(operator_position as isize + 1)
-                .and_then(|n| {
-                    if let PartialAstNode::ParsedExpression(exp) = n {
-                        Some(exp)
-                    } else {
-                        None
-                    }
-                });
+            let preceding_expression =
+                self.get_root_expression_if_present(operator_position as isize - 1);
+            let following_expression =
+                self.get_root_expression_if_present(operator_position as isize + 1);
 
             match (
                 preceding_expression,
@@ -213,12 +262,11 @@ impl OperatorParser {
                         Box::new(pre.clone()),
                         Box::new(post.clone()),
                     );
-                    let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
-                    self.op_tree_roots.splice(
+
+                    start = self.replace_roots_with_expression(
                         operator_position - 1..=operator_position + 1,
-                        replacement_slice.iter().cloned(),
+                        new_expression,
                     );
-                    start = operator_position;
                 }
                 (None, OperatorOperandType::UnaryPrefix, Some(post)) => {
                     // TODO: nested unary ops, such as '- -1'. Perhaps unary prefixes should parse RTL?
@@ -227,12 +275,10 @@ impl OperatorParser {
                         Box::new(post.clone()),
                     );
 
-                    let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
-                    self.op_tree_roots.splice(
+                    start = self.replace_roots_with_expression(
                         operator_position..=operator_position + 1,
-                        replacement_slice.iter().cloned(),
+                        new_expression,
                     );
-                    start = operator_position + 1;
                 }
                 (Some(pre), OperatorOperandType::UnaryPostfix, None) => {
                     let new_expression = Expression::UnaryOperation(
@@ -240,12 +286,10 @@ impl OperatorParser {
                         Box::new(pre.clone()),
                     );
 
-                    let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
-                    self.op_tree_roots.splice(
+                    start = self.replace_roots_with_expression(
                         operator_position - 1..=operator_position,
-                        replacement_slice.iter().cloned(),
+                        new_expression,
                     );
-                    start = operator_position;
                 }
                 // It's possible this operator will be resolved as a different precedence class.
                 // For example, we say that unary "-" is only valid if not preceded by an
@@ -548,7 +592,7 @@ mod tests {
 
         let parsed_expression = builder.parse()?;
 
-        // a - ((-($2)) * (foo++))
+        // a - ((-($2)) * (myvar2++))
         assert_eq!(
             parsed_expression,
             Expression::BinaryOperation(
@@ -567,6 +611,67 @@ mod tests {
                         UnOp::Increment,
                         Box::new(Expression::VariableValue(String::from("myvar2"))),
                     ))
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_string_literal_concat() -> Result<(), ParseError> {
+        let mut builder = OperatorHierarchyParser::new();
+
+        builder.add_known_expression(Expression::StringLiteral(String::from("a")));
+        builder.add_known_expression(Expression::StringLiteral(String::from("b")));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Concatenate,
+                Box::new(Expression::StringLiteral(String::from("a"))),
+                Box::new(Expression::StringLiteral(String::from("b"))),
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_concat() -> Result<(), ParseError> {
+        let mut builder = OperatorHierarchyParser::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("a")));
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::FieldReference);
+        builder.add_known_expression(Expression::NumericLiteral(2.));
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+        builder.add_operator_token(Token::Increment);
+
+        let parsed_expression = builder.parse()?;
+
+        // (a - (-($2))) concat (myvar2++)
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Concatenate,
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Subtract,
+                    Box::new(Expression::VariableValue(String::from("a"))),
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::Negation,
+                        Box::new(Expression::UnaryOperation(
+                            UnOp::FieldReference,
+                            Box::new(Expression::NumericLiteral(2.)),
+                        )),
+                    )),
+                )),
+                Box::new(Expression::UnaryOperation(
+                    UnOp::Increment,
+                    Box::new(Expression::VariableValue(String::from("myvar2"))),
                 ))
             )
         );

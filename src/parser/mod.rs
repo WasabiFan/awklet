@@ -30,10 +30,13 @@ pub fn parse(source: &str) -> Result<Ast, ParseError> {
     Ok(Ast { rules })
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::{ast::{Rule, Ast, Pattern, Action, Statement, BinOp, Expression, BuiltinCommand}, parse, parse_error::ParseError};
+    use super::{
+        ast::{Action, Ast, BinOp, BuiltinCommand, Expression, Pattern, Rule, Statement},
+        parse,
+        parse_error::ParseError,
+    };
 
     #[test]
     fn test_parse_word_count() -> Result<(), ParseError> {
@@ -70,13 +73,14 @@ mod tests {
                     },
                     Rule {
                         pattern: Pattern::End,
-                        action: Action::Present(vec![
-                            Statement::Command(BuiltinCommand::Print, vec![
+                        action: Action::Present(vec![Statement::Command(
+                            BuiltinCommand::Print,
+                            vec![
                                 Expression::VariableValue(String::from("NR")),
                                 Expression::VariableValue(String::from("words")),
                                 Expression::VariableValue(String::from("chars")),
-                            ])
-                        ])
+                            ]
+                        )])
                     }
                 ]
             }

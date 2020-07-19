@@ -1,6 +1,7 @@
 use super::{
     ast::{BuiltinCommand, Statement},
-    expression::parse_expression, utils::consume_all_statement_separators,
+    expression::parse_expression,
+    utils::consume_all_statement_separators,
 };
 use crate::lexer::Token;
 use crate::parser::ast::Action;
