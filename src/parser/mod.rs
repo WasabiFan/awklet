@@ -9,15 +9,14 @@ mod expression_ops;
 mod pattern;
 mod rule;
 
-use crate::lexer::tokenize;
 use ast::{Ast, Rule};
 
 use parse_error::ParseError;
 
 use rule::parse_rule;
+use crate::lexer::Token;
 
-pub fn parse(source: &str) -> Result<Ast, ParseError> {
-    let tokens = tokenize(source).map_err(|err| ParseError::TokenizeError(err))?;
+pub fn parse(tokens: &[Token]) -> Result<Ast, ParseError> {
     let mut remaining_tokens = &tokens[..];
 
     let mut rules: Vec<Rule> = Vec::new();
@@ -37,6 +36,7 @@ mod tests {
         parse,
         parse_error::ParseError,
     };
+    use crate::lexer::tokenize;
 
     #[test]
     fn test_parse_word_count() -> Result<(), ParseError> {
@@ -46,7 +46,8 @@ mod tests {
         }
         END { print NR, words, chars }";
 
-        let ast = parse(program)?;
+        let tokens = tokenize(program).unwrap();
+        let ast = parse(&tokens[..])?;
 
         assert_eq!(
             ast,
