@@ -81,6 +81,18 @@ pub enum UnOp {
     Decrement,
 }
 
+impl UnOp {
+    pub fn partial_from_token(token: &Token) -> Option<Self> {
+        match token {
+            Token::FieldReference => Some(UnOp::FieldReference),
+            Token::Minus => Some(UnOp::Negation),
+            Token::Increment => Some(UnOp::Increment),
+            Token::Decrement => Some(UnOp::Decrement),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     NumericLiteral(f64),

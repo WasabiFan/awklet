@@ -1,4 +1,7 @@
-use super::{ast::BinOp, parse_error::ParseError};
+use super::{
+    ast::{BinOp, UnOp},
+    parse_error::ParseError,
+};
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
 
@@ -42,6 +45,8 @@ impl OpPrecedenceClass {
     pub fn does_contain(&self, token: &Token) -> bool {
         match (&self, &token) {
             (OpPrecedenceClass::Assignment, Token::AssignEquals) => true,
+            (OpPrecedenceClass::UnaryPlusMinusNot, Token::Minus) => true,
+            (OpPrecedenceClass::AddSub, Token::Minus) => true,
             // TODO
             _ => false,
         }
@@ -132,7 +137,7 @@ impl OperatorParser {
             .find_map(|node| {
                 if let (i, PartialAstNode::OperatorToken(token)) = node {
                     if class.does_contain(token) {
-                        Some((i, token))
+                        Some((i + start, token))
                     } else {
                         None
                     }
@@ -154,23 +159,26 @@ impl OperatorParser {
         // TODO: is it ever possible to know we have an error here?
         // TODO: associativity direction
         let mut start = 0usize;
-        while let Some((pos, token)) = self.find_next_op_token_of_class(class, start) {
-            start = pos + 1;
-
-            let preceding_expression = self.get_op_tree_entry(pos as isize - 1).and_then(|n| {
-                if let PartialAstNode::ParsedExpression(exp) = n {
-                    Some(exp)
-                } else {
-                    None
-                }
-            });
-            let following_expression = self.get_op_tree_entry(pos as isize + 1).and_then(|n| {
-                if let PartialAstNode::ParsedExpression(exp) = n {
-                    Some(exp)
-                } else {
-                    None
-                }
-            });
+        while let Some((operator_position, token)) = self.find_next_op_token_of_class(class, start)
+        {
+            let preceding_expression = self
+                .get_op_tree_entry(operator_position as isize - 1)
+                .and_then(|n| {
+                    if let PartialAstNode::ParsedExpression(exp) = n {
+                        Some(exp)
+                    } else {
+                        None
+                    }
+                });
+            let following_expression = self
+                .get_op_tree_entry(operator_position as isize + 1)
+                .and_then(|n| {
+                    if let PartialAstNode::ParsedExpression(exp) = n {
+                        Some(exp)
+                    } else {
+                        None
+                    }
+                });
 
             match (
                 preceding_expression,
@@ -184,15 +192,33 @@ impl OperatorParser {
                         Box::new(post.clone()),
                     );
                     let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
-                    self.op_tree_roots
-                        .splice(pos - 1..=pos + 1, replacement_slice.iter().cloned());
+                    self.op_tree_roots.splice(
+                        operator_position - 1..=operator_position + 1,
+                        replacement_slice.iter().cloned(),
+                    );
+                    start = operator_position;
+                }
+                (None, OperatorOperandType::UnaryPrefix, Some(post)) => {
+                    let new_expression = Expression::UnaryOperation(
+                        UnOp::partial_from_token(token).ok_or(ParseError::SyntaxError)?,
+                        Box::new(post.clone()),
+                    );
+
+                    let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
+                    self.op_tree_roots.splice(
+                        operator_position..=operator_position + 1,
+                        replacement_slice.iter().cloned(),
+                    );
+                    start = operator_position + 1;
                 }
                 // It's possible this operator will be resolved as a different precedence class.
                 // For example, we say that unary "-" is only valid if not preceded by an
                 // expression; if it were, that should instead be a binary "-", despite the fact
                 // that the unary form has higher precedence. Thus, even if we don't match the unary
                 // form here, we may later find that the binary form *is* valid.
-                _ => (),
+                _ => {
+                    start = operator_position + 1;
+                }
             }
         }
 
@@ -206,7 +232,7 @@ mod tests {
     use crate::{
         lexer::Token,
         parser::{
-            ast::{BinOp, Expression},
+            ast::{BinOp, Expression, UnOp},
             parse_error::ParseError,
         },
     };
@@ -227,6 +253,152 @@ mod tests {
                 BinOp::Assign,
                 Box::new(Expression::VariableValue(String::from("myvar"))),
                 Box::new(Expression::NumericLiteral(5.))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_binary_subtraction() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::NumericLiteral(5.));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Subtract,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(5.))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_assign_binary_subtraction() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
+        builder.add_operator_token(Token::AssignEquals);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::NumericLiteral(5.));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Subtract,
+                    Box::new(Expression::VariableValue(String::from("myvar"))),
+                    Box::new(Expression::NumericLiteral(5.))
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_unary_minus_numeric() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::NumericLiteral(5.));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::UnaryOperation(UnOp::Negation, Box::new(Expression::NumericLiteral(5.)))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_unary_minus_variable() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::UnaryOperation(
+                UnOp::Negation,
+                Box::new(Expression::VariableValue(String::from("myvar")))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_minus_negative() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Subtract,
+                Box::new(Expression::VariableValue(String::from("myvar1"))),
+                Box::new(Expression::UnaryOperation(
+                    UnOp::Negation,
+                    Box::new(Expression::VariableValue(String::from("myvar2")))
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    #[ignore]
+    // Double-negative requires parsing prefix operators right-to-left, which is not yet
+    // implemented.
+    fn test_double_negative() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
+        builder.add_operator_token(Token::AssignEquals);
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::Minus);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar1"))),
+                Box::new(Expression::UnaryOperation(
+                    UnOp::Negation,
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::Negation,
+                        Box::new(Expression::VariableValue(String::from("myvar2")))
+                    ))
+                ))
             )
         );
 
