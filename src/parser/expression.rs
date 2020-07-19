@@ -280,10 +280,7 @@ mod tests {
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
 
-        assert_eq!(
-            expression,
-            Expression::RegexLiteral(String::from("a.*b"))
-        );
+        assert_eq!(expression, Expression::RegexLiteral(String::from("a.*b")));
         assert_eq!(consumed_tokens, 1);
 
         Ok(())
@@ -530,7 +527,8 @@ mod tests {
             Token::StringLiteral(String::from("foo")),
         ];
 
-        let (consumed_tokens, expressions) = super::parse_greedy_comma_separated_expressions(tokens)?;
+        let (consumed_tokens, expressions) =
+            super::parse_greedy_comma_separated_expressions(tokens)?;
 
         assert_eq!(
             expressions,

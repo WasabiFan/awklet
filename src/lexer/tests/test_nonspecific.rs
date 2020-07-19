@@ -65,7 +65,6 @@ fn test_statement_separator() -> Result<(), TokenizeError> {
     Ok(())
 }
 
-
 #[test]
 fn test_comparisons() -> Result<(), TokenizeError> {
     let source = "< <= == != > >=";

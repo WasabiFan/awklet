@@ -14,12 +14,11 @@ pub fn parse_pattern(tokens: &[Token]) -> Result<(usize, Pattern), ParseError> {
                 consumed_tokens,
                 match &expressions[..] {
                     &[ref single_exp] => Pattern::SingleCondition(single_exp.clone()),
-                    &[ref range_start, ref range_end] => Pattern::Range(
-                        range_start.clone(),
-                        range_end.clone(),
-                    ),
-                    _ => return Err(ParseError::SyntaxError)
-                }
+                    &[ref range_start, ref range_end] => {
+                        Pattern::Range(range_start.clone(), range_end.clone())
+                    }
+                    _ => return Err(ParseError::SyntaxError),
+                },
             ))
         }
     }
@@ -85,13 +84,11 @@ mod tests {
 
         assert_eq!(
             pattern,
-            Pattern::SingleCondition(
-                Expression::BinaryOperation(
-                    BinOp::Assign,
-                    Box::new(Expression::VariableValue(String::from("myvar"))),
-                    Box::new(Expression::NumericLiteral(2.))
-                )
-            )
+            Pattern::SingleCondition(Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(2.))
+            ))
         );
         assert_eq!(consumed_tokens, 3);
 
@@ -107,7 +104,7 @@ mod tests {
             Token::NumericLiteral(2.),
             Token::Comma,
             Token::RegexLiteral(String::from("foo|bar")),
-            Token::OpenBrace
+            Token::OpenBrace,
         ];
 
         let (consumed_tokens, pattern) = super::parse_pattern(tokens)?;
