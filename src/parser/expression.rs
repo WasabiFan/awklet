@@ -58,7 +58,6 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
 }
 
 pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
-    // TODO: we must be able to check whether the next token is an operator
     let mut parser = OperatorHierarchyParser::new();
     let mut position = 0;
     while position < tokens.len() {
@@ -444,6 +443,64 @@ mod tests {
         );
 
         assert_eq!(consumed_tokens, 7);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_nested_misc() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::OpenParen,
+            Token::OpenParen,
+            Token::NumericLiteral(2.),
+            Token::CloseParen,
+            Token::CloseParen,
+            Token::Plus,
+            Token::NumericLiteral(5.),
+            Token::Star,
+            Token::Identifier(String::from("somefunc")),
+            Token::OpenParen,
+            Token::Identifier(String::from("myvar")),
+            Token::AssignEquals,
+            Token::NumericLiteral(5.),
+            Token::Slash,
+            Token::Minus,
+            Token::NumericLiteral(5.),
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::BinaryOperation(
+                BinOp::Add,
+                Box::new(Expression::NumericLiteral(2.)),
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Multiply,
+                    Box::new(Expression::NumericLiteral(5.)),
+                    Box::new(Expression::FunctionCall(
+                        String::from("somefunc"),
+                        vec![
+                            Expression::BinaryOperation(
+                                BinOp::Assign,
+                                Box::new(Expression::VariableValue(String::from("myvar"))),
+                                Box::new(Expression::BinaryOperation(
+                                    BinOp::Divide,
+                                    Box::new(Expression::NumericLiteral(5.)),
+                                    Box::new(Expression::UnaryOperation(
+                                        UnOp::Negation,
+                                        Box::new(Expression::NumericLiteral(5.)))
+                                    )
+                                ))
+                            )
+                        ]
+                    ))
+                ))
+            )
+        );
+
+        assert_eq!(consumed_tokens, 17);
 
         Ok(())
     }
