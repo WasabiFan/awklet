@@ -43,15 +43,6 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
         }
         (Token::Identifier(var_name), _) => Ok((1, Expression::VariableValue(var_name.clone()))),
         (Token::NumericLiteral(val), _) => Ok((1, Expression::NumericLiteral(*val))),
-        (Token::FieldReference, _) => {
-            let remaining_tokens = &tokens[1..];
-            let (consumed_tokens, child_expression) =
-                parse_single_expression_unit(&remaining_tokens)?;
-            Ok((
-                1 + consumed_tokens,
-                Expression::UnaryOperation(UnOp::FieldReference, Box::new(child_expression)),
-            ))
-        }
         (Token::OpenParen, _) => {
             let remaining_tokens = &tokens[1..];
             let (consumed_tokens, inner_expression) = parse_expression(remaining_tokens)?;

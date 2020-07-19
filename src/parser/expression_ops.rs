@@ -45,9 +45,24 @@ impl OpPrecedenceClass {
     pub fn does_contain(&self, token: &Token) -> bool {
         match (&self, &token) {
             (OpPrecedenceClass::Assignment, Token::AssignEquals) => true,
-            (OpPrecedenceClass::UnaryPlusMinusNot, Token::Minus) => true,
+            (OpPrecedenceClass::Assignment, Token::PlusEquals) => true,
+            (OpPrecedenceClass::Assignment, Token::MinusEquals) => true,
+
             (OpPrecedenceClass::AddSub, Token::Minus) => true,
-            // TODO
+            (OpPrecedenceClass::AddSub, Token::Plus) => true,
+
+            (OpPrecedenceClass::MultDivMod, Token::Star) => true,
+            (OpPrecedenceClass::MultDivMod, Token::Slash) => true,
+            (OpPrecedenceClass::MultDivMod, Token::Mod) => true,
+
+            (OpPrecedenceClass::UnaryPlusMinusNot, Token::Plus) => true,
+            (OpPrecedenceClass::UnaryPlusMinusNot, Token::Minus) => true,
+
+            (OpPrecedenceClass::IncrementDecrement, Token::Increment) => true,
+            (OpPrecedenceClass::IncrementDecrement, Token::Decrement) => true,
+
+            (OpPrecedenceClass::FieldReference, Token::FieldReference) => true,
+
             _ => false,
         }
     }
@@ -199,6 +214,7 @@ impl OperatorParser {
                     start = operator_position;
                 }
                 (None, OperatorOperandType::UnaryPrefix, Some(post)) => {
+                    // TODO: nested unary ops, such as '- -1'. Perhaps unary prefixes should parse RTL?
                     let new_expression = Expression::UnaryOperation(
                         UnOp::partial_from_token(token).ok_or(ParseError::SyntaxError)?,
                         Box::new(post.clone()),
@@ -210,6 +226,19 @@ impl OperatorParser {
                         replacement_slice.iter().cloned(),
                     );
                     start = operator_position + 1;
+                },
+                (Some(pre), OperatorOperandType::UnaryPostfix, None) => {
+                    let new_expression = Expression::UnaryOperation(
+                        UnOp::partial_from_token(token).ok_or(ParseError::SyntaxError)?,
+                        Box::new(pre.clone()),
+                    );
+
+                    let replacement_slice = &[PartialAstNode::ParsedExpression(new_expression)];
+                    self.op_tree_roots.splice(
+                        operator_position - 1..=operator_position,
+                        replacement_slice.iter().cloned(),
+                    );
+                    start = operator_position;
                 }
                 // It's possible this operator will be resolved as a different precedence class.
                 // For example, we say that unary "-" is only valid if not preceded by an
@@ -374,8 +403,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    // Double-negative requires parsing prefix operators right-to-left, which is not yet
-    // implemented.
+    // Double-negative requires special handling of nested ops, which is not yet implemented.
     fn test_double_negative() -> Result<(), ParseError> {
         let mut builder = PartialAstBuilder::new();
 
@@ -397,6 +425,144 @@ mod tests {
                     Box::new(Expression::UnaryOperation(
                         UnOp::Negation,
                         Box::new(Expression::VariableValue(String::from("myvar2")))
+                    ))
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_increment() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
+        builder.add_operator_token(Token::PlusEquals);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+        builder.add_operator_token(Token::Increment);
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::AddAssign,
+                Box::new(Expression::VariableValue(String::from("myvar1"))),
+                Box::new(Expression::UnaryOperation(
+                    UnOp::Increment,
+                    Box::new(Expression::VariableValue(String::from("myvar2")))
+                ))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_basic_precedence_1() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_operator_token(Token::FieldReference);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
+        builder.add_operator_token(Token::Plus);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+
+        let parsed_expression = builder.parse()?;
+
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Add,
+                Box::new(Expression::UnaryOperation(
+                    UnOp::FieldReference,
+                    Box::new(Expression::VariableValue(String::from("myvar1"))),
+                    
+                )),
+                Box::new(Expression::VariableValue(String::from("myvar2")))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_arithmetic_precedence() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("a")));
+        builder.add_operator_token(Token::Plus);
+        builder.add_known_expression(Expression::VariableValue(String::from("b")));
+        builder.add_operator_token(Token::Star);
+        builder.add_known_expression(Expression::VariableValue(String::from("c")));
+        builder.add_operator_token(Token::Slash);
+        builder.add_known_expression(Expression::VariableValue(String::from("d")));
+        builder.add_operator_token(Token::Plus);
+        builder.add_known_expression(Expression::VariableValue(String::from("e")));
+
+        
+        let parsed_expression = builder.parse()?;
+        
+        //((a+((b*c)/d))+e)
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Add,
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Add,
+                    Box::new(Expression::VariableValue(String::from("a"))),
+                    Box::new(Expression::BinaryOperation(
+                        BinOp::Divide,
+                        Box::new(Expression::BinaryOperation(
+                            BinOp::Multiply,
+                            Box::new(Expression::VariableValue(String::from("b"))),
+                            Box::new(Expression::VariableValue(String::from("c"))),
+                            
+                        )),
+                        Box::new(Expression::VariableValue(String::from("d"))),
+                    )),
+                    
+                )),
+                Box::new(Expression::VariableValue(String::from("e")))
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_precedence() -> Result<(), ParseError> {
+        let mut builder = PartialAstBuilder::new();
+
+        builder.add_known_expression(Expression::VariableValue(String::from("a")));
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::Minus);
+        builder.add_operator_token(Token::FieldReference);
+        builder.add_known_expression(Expression::NumericLiteral(2.));
+        builder.add_operator_token(Token::Star);
+        builder.add_known_expression(Expression::VariableValue(String::from("myvar2")));
+        builder.add_operator_token(Token::Increment);
+
+        let parsed_expression = builder.parse()?;
+
+        // a - ((-($2)) * (foo++))
+        assert_eq!(
+            parsed_expression,
+            Expression::BinaryOperation(
+                BinOp::Subtract,
+                Box::new(Expression::VariableValue(String::from("a"))),
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Multiply,
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::Negation,
+                        Box::new(Expression::UnaryOperation(
+                            UnOp::FieldReference,
+                            Box::new(Expression::NumericLiteral(2.)),
+                        )),
+                    )),
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::Increment,
+                        Box::new(Expression::VariableValue(String::from("myvar2"))),
                     ))
                 ))
             )
