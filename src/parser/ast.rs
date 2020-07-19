@@ -1,3 +1,5 @@
+use crate::lexer::Token;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Ast {
     pub rules: Vec<Rule>,
@@ -52,10 +54,29 @@ pub enum BinOp {
     Assign,
     AddAssign,
     SubtractAssign,
+    // TODO: StringConcat
+}
+
+impl BinOp {
+    pub fn partial_from_token(token: &Token) -> Option<Self> {
+        match token {
+            Token::Plus => Some(BinOp::Add),
+            Token::Minus => Some(BinOp::Subtract),
+            Token::Star => Some(BinOp::Multiply),
+            Token::Slash => Some(BinOp::Divide),
+            Token::Mod => Some(BinOp::Mod),
+            Token::AssignEquals => Some(BinOp::Assign),
+            Token::PlusEquals => Some(BinOp::AddAssign),
+            Token::MinusEquals => Some(BinOp::SubtractAssign),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum UnOp {
+    FieldReference,
+    Negation,
     Increment,
     Decrement,
 }
@@ -63,12 +84,10 @@ pub enum UnOp {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     NumericLiteral(f64),
-    Negation(Box<Expression>),
     StringLiteral(String),
     FunctionCall(String, Vec<Expression>),
     BinaryOperation(BinOp, Box<Expression>, Box<Expression>),
     UnaryOperation(UnOp, Box<Expression>),
-    FieldReference(Box<Expression>),
     VariableValue(String),
     Command(String, Vec<Expression>),
 }

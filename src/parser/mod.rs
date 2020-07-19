@@ -3,6 +3,7 @@ mod parse_error;
 
 mod action;
 mod expression;
+mod expression_ops;
 mod pattern;
 mod rule;
 

@@ -1,6 +1,7 @@
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
 use crate::parser::parse_error::ParseError;
+use super::ast::UnOp;
 
 fn parse_greedy_comma_separated_expressions(
     tokens: &[Token],
@@ -47,7 +48,7 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
                 parse_single_expression_unit(&remaining_tokens)?;
             Ok((
                 1 + consumed_tokens,
-                Expression::Negation(Box::new(child_expression)),
+                Expression::UnaryOperation(UnOp::Negation, Box::new(child_expression)),
             ))
         }
         (Token::FieldReference, _) => {
@@ -56,7 +57,7 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
                 parse_single_expression_unit(&remaining_tokens)?;
             Ok((
                 1 + consumed_tokens,
-                Expression::FieldReference(Box::new(child_expression)),
+                Expression::UnaryOperation(UnOp::FieldReference, Box::new(child_expression)),
             ))
         }
         (Token::OpenParen, _) => {
@@ -74,12 +75,14 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
 }
 
 pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
+    // TODO: we must be able to check whether the next token is an operator
     parse_single_expression_unit(tokens)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Expression, ParseError, Token};
+    use crate::parser::ast::UnOp;
 
     #[test]
     fn test_variable() -> Result<(), ParseError> {
@@ -183,7 +186,7 @@ mod tests {
 
         assert_eq!(
             expression,
-            Expression::Negation(Box::new(Expression::NumericLiteral(5.)))
+            Expression::UnaryOperation(UnOp::Negation, Box::new(Expression::NumericLiteral(5.)))
         );
         assert_eq!(consumed_tokens, 2);
 
@@ -203,7 +206,7 @@ mod tests {
 
         assert_eq!(
             expression,
-            Expression::Negation(Box::new(Expression::NumericLiteral(5.)))
+            Expression::UnaryOperation(UnOp::Negation, Box::new(Expression::NumericLiteral(5.)))
         );
         assert_eq!(consumed_tokens, 4);
 
@@ -277,7 +280,7 @@ mod tests {
 
         assert_eq!(
             expression,
-            Expression::FieldReference(Box::new(Expression::NumericLiteral(2.)))
+            Expression::UnaryOperation(UnOp::FieldReference, Box::new(Expression::NumericLiteral(2.)))
         );
         assert_eq!(consumed_tokens, 2);
 
@@ -338,8 +341,8 @@ mod tests {
             Expression::FunctionCall(
                 String::from("foo"),
                 vec![
-                    Expression::Negation(Box::new(Expression::NumericLiteral(10.))),
-                    Expression::FieldReference(Box::new(Expression::VariableValue(String::from(
+                    Expression::UnaryOperation(UnOp::Negation, Box::new(Expression::NumericLiteral(10.))),
+                    Expression::UnaryOperation(UnOp::FieldReference, Box::new(Expression::VariableValue(String::from(
                         "my_var_2"
                     ))))
                 ]
