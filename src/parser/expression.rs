@@ -1,7 +1,8 @@
+use super::ast::{BinOp, UnOp};
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
+use crate::parser::expression_ops::PartialAstBuilder;
 use crate::parser::parse_error::ParseError;
-use super::ast::UnOp;
 
 fn parse_greedy_comma_separated_expressions(
     tokens: &[Token],
@@ -76,13 +77,30 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
 
 pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
     // TODO: we must be able to check whether the next token is an operator
-    parse_single_expression_unit(tokens)
+    let mut parser = PartialAstBuilder::new();
+    let mut position = 0;
+    while position < tokens.len() {
+        let remaining_tokens = &tokens[position..];
+        if let Ok((consumed_tokens, expression)) = parse_single_expression_unit(remaining_tokens) {
+            position = position + consumed_tokens;
+            parser.add_known_expression(expression);
+        } else if let Some(_) = BinOp::partial_from_token(&remaining_tokens[0]) {
+            position = position + 1;
+            parser.add_operator_token(remaining_tokens[0].clone());
+        } else {
+            break;
+        }
+    }
+
+    // We can't greedily add any more tokens; try to parse what we've found, and return.
+    let expression = parser.parse()?;
+    Ok((position, expression))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Expression, ParseError, Token};
-    use crate::parser::ast::UnOp;
+    use crate::parser::ast::{BinOp, UnOp};
 
     #[test]
     fn test_variable() -> Result<(), ParseError> {
@@ -280,7 +298,10 @@ mod tests {
 
         assert_eq!(
             expression,
-            Expression::UnaryOperation(UnOp::FieldReference, Box::new(Expression::NumericLiteral(2.)))
+            Expression::UnaryOperation(
+                UnOp::FieldReference,
+                Box::new(Expression::NumericLiteral(2.))
+            )
         );
         assert_eq!(consumed_tokens, 2);
 
@@ -341,14 +362,72 @@ mod tests {
             Expression::FunctionCall(
                 String::from("foo"),
                 vec![
-                    Expression::UnaryOperation(UnOp::Negation, Box::new(Expression::NumericLiteral(10.))),
-                    Expression::UnaryOperation(UnOp::FieldReference, Box::new(Expression::VariableValue(String::from(
-                        "my_var_2"
-                    ))))
+                    Expression::UnaryOperation(
+                        UnOp::Negation,
+                        Box::new(Expression::NumericLiteral(10.))
+                    ),
+                    Expression::UnaryOperation(
+                        UnOp::FieldReference,
+                        Box::new(Expression::VariableValue(String::from("my_var_2")))
+                    )
                 ]
             )
         );
         assert_eq!(consumed_tokens, 12);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_binary_operator() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::Identifier(String::from("myvar")),
+            Token::AssignEquals,
+            Token::NumericLiteral(5.),
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(5.))
+            )
+        );
+
+        assert_eq!(consumed_tokens, 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_binary_operator_multi_unit() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::Identifier(String::from("myvar")),
+            Token::AssignEquals,
+            Token::Identifier(String::from("sqrt")),
+            Token::OpenParen,
+            Token::NumericLiteral(5.),
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::FunctionCall(
+                    String::from("sqrt"),
+                    vec![Expression::NumericLiteral(5.)]
+                ))
+            )
+        );
+
+        assert_eq!(consumed_tokens, 6);
 
         Ok(())
     }
