@@ -5,7 +5,7 @@ use super::{
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
 
-pub struct PartialAstBuilder {
+pub struct OperatorHierarchyParser {
     op_tree_roots: Vec<PartialAstNode>,
 }
 
@@ -87,10 +87,9 @@ impl OperatorOperandType {
     }
 }
 
-// TODO: rename this
-impl PartialAstBuilder {
-    pub fn new() -> PartialAstBuilder {
-        PartialAstBuilder {
+impl OperatorHierarchyParser {
+    pub fn new() -> OperatorHierarchyParser {
+        OperatorHierarchyParser {
             op_tree_roots: Vec::new(),
         }
     }
@@ -171,7 +170,6 @@ impl OperatorParser {
     }
 
     fn coalesce_operator_class(&mut self, class: OpPrecedenceClass) -> Result<(), ParseError> {
-        // TODO: is it ever possible to know we have an error here?
         // TODO: associativity direction
         let mut start = 0usize;
         while let Some((operator_position, token)) = self.find_next_op_token_of_class(class, start)
@@ -257,7 +255,7 @@ impl OperatorParser {
 
 #[cfg(test)]
 mod tests {
-    use super::PartialAstBuilder;
+    use super::OperatorHierarchyParser;
     use crate::{
         lexer::Token,
         parser::{
@@ -268,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_binary_assignment_operator() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
         builder.add_operator_token(Token::AssignEquals);
@@ -290,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_simple_binary_subtraction() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
         builder.add_operator_token(Token::Minus);
@@ -312,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_assign_binary_subtraction() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
         builder.add_operator_token(Token::AssignEquals);
@@ -340,7 +338,7 @@ mod tests {
 
     #[test]
     fn test_simple_unary_minus_numeric() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::Minus);
         builder.add_known_expression(Expression::NumericLiteral(5.));
@@ -357,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_simple_unary_minus_variable() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::Minus);
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
@@ -377,7 +375,7 @@ mod tests {
 
     #[test]
     fn test_minus_negative() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
         builder.add_operator_token(Token::Minus);
@@ -405,7 +403,7 @@ mod tests {
     #[ignore]
     // Double-negative requires special handling of nested ops, which is not yet implemented.
     fn test_double_negative() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
         builder.add_operator_token(Token::AssignEquals);
@@ -435,7 +433,7 @@ mod tests {
 
     #[test]
     fn test_increment() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
         builder.add_operator_token(Token::PlusEquals);
@@ -461,7 +459,7 @@ mod tests {
 
     #[test]
     fn test_basic_precedence_1() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::FieldReference);
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
@@ -488,7 +486,7 @@ mod tests {
 
     #[test]
     fn test_arithmetic_precedence() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("a")));
         builder.add_operator_token(Token::Plus);
@@ -532,7 +530,7 @@ mod tests {
 
     #[test]
     fn test_complex_precedence() -> Result<(), ParseError> {
-        let mut builder = PartialAstBuilder::new();
+        let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("a")));
         builder.add_operator_token(Token::Minus);

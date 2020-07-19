@@ -1,7 +1,7 @@
 use super::ast::{BinOp, UnOp};
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
-use crate::parser::expression_ops::PartialAstBuilder;
+use crate::parser::expression_ops::OperatorHierarchyParser;
 use crate::parser::parse_error::ParseError;
 
 fn parse_greedy_comma_separated_expressions(
@@ -59,7 +59,7 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
 
 pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseError> {
     // TODO: we must be able to check whether the next token is an operator
-    let mut parser = PartialAstBuilder::new();
+    let mut parser = OperatorHierarchyParser::new();
     let mut position = 0;
     while position < tokens.len() {
         let remaining_tokens = &tokens[position..];
