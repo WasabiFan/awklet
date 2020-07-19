@@ -4,7 +4,7 @@ use crate::parser::ast::Expression;
 use crate::parser::expression_ops::OperatorHierarchyParser;
 use crate::parser::parse_error::ParseError;
 
-fn parse_greedy_comma_separated_expressions(
+pub fn parse_greedy_comma_separated_expressions(
     tokens: &[Token],
 ) -> Result<(usize, Vec<Expression>), ParseError> {
     parse_expression(tokens).map_or_else(
@@ -53,6 +53,7 @@ fn parse_single_expression_unit(tokens: &[Token]) -> Result<(usize, Expression),
             Ok((1 + consumed_tokens + 1, inner_expression))
         }
         (Token::StringLiteral(val), _) => Ok((1, Expression::StringLiteral(val.clone()))),
+        (Token::RegexLiteral(val), _) => Ok((1, Expression::RegexLiteral(val.clone()))),
         _ => Err(ParseError::SyntaxError),
     }
 }
@@ -267,6 +268,21 @@ mod tests {
         assert_eq!(
             expression,
             Expression::StringLiteral(String::from("foobar"))
+        );
+        assert_eq!(consumed_tokens, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_regex_literal() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[Token::RegexLiteral(String::from("a.*b"))];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::RegexLiteral(String::from("a.*b"))
         );
         assert_eq!(consumed_tokens, 1);
 
@@ -499,6 +515,38 @@ mod tests {
         );
 
         assert_eq!(consumed_tokens, 17);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_comma_separated_regex_expression() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::RegexLiteral(String::from("a.*b")),
+            Token::Comma,
+            Token::FieldReference,
+            Token::NumericLiteral(1.),
+            Token::CompareEquals,
+            Token::StringLiteral(String::from("foo")),
+        ];
+
+        let (consumed_tokens, expressions) = super::parse_greedy_comma_separated_expressions(tokens)?;
+
+        assert_eq!(
+            expressions,
+            vec![
+                Expression::RegexLiteral(String::from("a.*b")),
+                Expression::BinaryOperation(
+                    BinOp::CompareEquals,
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::FieldReference,
+                        Box::new(Expression::NumericLiteral(1.))
+                    )),
+                    Box::new(Expression::StringLiteral(String::from("foo")))
+                )
+            ]
+        );
+        assert_eq!(consumed_tokens, 6);
 
         Ok(())
     }

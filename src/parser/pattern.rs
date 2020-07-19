@@ -1,4 +1,4 @@
-use super::{ast::SingleConditionPattern, expression::parse_expression};
+use super::expression::parse_greedy_comma_separated_expressions;
 use crate::lexer::Token;
 use crate::parser::ast::Pattern;
 use crate::parser::parse_error::ParseError;
@@ -9,11 +9,17 @@ pub fn parse_pattern(tokens: &[Token]) -> Result<(usize, Pattern), ParseError> {
         Token::EndKeyword => Ok((1, Pattern::End)),
         Token::OpenBrace => Ok((0, Pattern::Empty)),
         _ => {
-            let (consumed_tokens, expression) = parse_expression(tokens)?;
-            // TODO: range patterns
+            let (consumed_tokens, expressions) = parse_greedy_comma_separated_expressions(tokens)?;
             Ok((
                 consumed_tokens,
-                Pattern::SingleCondition(SingleConditionPattern::Expression(expression)),
+                match &expressions[..] {
+                    &[ref single_exp] => Pattern::SingleCondition(single_exp.clone()),
+                    &[ref range_start, ref range_end] => Pattern::Range(
+                        range_start.clone(),
+                        range_end.clone(),
+                    ),
+                    _ => return Err(ParseError::SyntaxError)
+                }
             ))
         }
     }
@@ -22,7 +28,7 @@ pub fn parse_pattern(tokens: &[Token]) -> Result<(usize, Pattern), ParseError> {
 #[cfg(test)]
 mod tests {
     use super::{ParseError, Pattern, Token};
-    use crate::parser::ast::{BinOp, Expression, SingleConditionPattern};
+    use crate::parser::ast::{BinOp, Expression, UnOp};
 
     #[test]
     fn test_begin() -> Result<(), ParseError> {
@@ -79,15 +85,48 @@ mod tests {
 
         assert_eq!(
             pattern,
-            Pattern::SingleCondition(SingleConditionPattern::Expression(
+            Pattern::SingleCondition(
                 Expression::BinaryOperation(
                     BinOp::Assign,
                     Box::new(Expression::VariableValue(String::from("myvar"))),
                     Box::new(Expression::NumericLiteral(2.))
                 )
-            ))
+            )
         );
         assert_eq!(consumed_tokens, 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_range_pattern() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::FieldReference,
+            Token::Identifier(String::from("myvar")),
+            Token::CompareEquals,
+            Token::NumericLiteral(2.),
+            Token::Comma,
+            Token::RegexLiteral(String::from("foo|bar")),
+            Token::OpenBrace
+        ];
+
+        let (consumed_tokens, pattern) = super::parse_pattern(tokens)?;
+
+        assert_eq!(
+            pattern,
+            Pattern::Range(
+                Expression::BinaryOperation(
+                    BinOp::CompareEquals,
+                    Box::new(Expression::UnaryOperation(
+                        UnOp::FieldReference,
+                        Box::new(Expression::VariableValue(String::from("myvar")))
+                    )),
+                    Box::new(Expression::NumericLiteral(2.))
+                ),
+                Expression::RegexLiteral(String::from("foo|bar"))
+            )
+        );
+        assert_eq!(consumed_tokens, 6);
 
         Ok(())
     }

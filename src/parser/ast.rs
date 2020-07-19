@@ -12,16 +12,9 @@ pub struct Rule {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum SingleConditionPattern {
-    // TODO: would be nice to store regex as Regex, but that would make testing difficult.
-    Regex(String),
-    Expression(Expression),
-}
-
-#[derive(Debug, PartialEq, Clone)]
 pub enum Pattern {
-    SingleCondition(SingleConditionPattern),
-    Range(SingleConditionPattern, SingleConditionPattern),
+    SingleCondition(Expression),
+    Range(Expression, Expression),
     Begin,
     End,
     // TODO: BEGINFILE, ENDFILE omitted
@@ -35,12 +28,17 @@ pub enum Action {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum BuiltinCommand {
+    Print,
+    // Printf
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression(Expression),
+    Command(BuiltinCommand, Vec<Expression>),
     // TODO: control
     // TODO: compound
-    // commands are treated as expressions
-    // Command(String, Vec<Expression>),
     // TODO: deletion statements
 }
 
@@ -54,6 +52,12 @@ pub enum BinOp {
     Assign,
     AddAssign,
     SubtractAssign,
+    CompareLess,
+    CompareLessEquals,
+    CompareEquals,
+    CompareNotEquals,
+    CompareGreater,
+    CompareGreaterEquals,
     // TODO: StringConcat
 }
 
@@ -68,6 +72,11 @@ impl BinOp {
             Token::AssignEquals => Some(BinOp::Assign),
             Token::PlusEquals => Some(BinOp::AddAssign),
             Token::MinusEquals => Some(BinOp::SubtractAssign),
+            Token::LeftCaret => Some(BinOp::CompareLess),
+            Token::LessEqual => Some(BinOp::CompareLessEquals),
+            Token::CompareEquals => Some(BinOp::CompareEquals),
+            Token::RightCaret => Some(BinOp::CompareGreater),
+            Token::GreaterEqual => Some(BinOp::CompareGreaterEquals),
             _ => None,
         }
     }
@@ -113,9 +122,11 @@ impl UnOp {
 pub enum Expression {
     NumericLiteral(f64),
     StringLiteral(String),
+    // TODO: would be nice to store regex as Regex, but that would make testing difficult.
+    RegexLiteral(String),
     FunctionCall(String, Vec<Expression>),
     BinaryOperation(BinOp, Box<Expression>, Box<Expression>),
     UnaryOperation(UnOp, Box<Expression>),
     VariableValue(String),
-    Command(String, Vec<Expression>),
+    // TODO: getline and friends
 }

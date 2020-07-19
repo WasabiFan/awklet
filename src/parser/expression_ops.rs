@@ -17,7 +17,7 @@ enum OpPrecedenceClass {
     // LogicalAnd,
     // ArrayMembership,
     // Matching,
-    // RelationalAndRedirection,
+    RelationalAndRedirection,
     // TODO: How do we handle string concat?
     AddSub,
     MultDivMod,
@@ -36,6 +36,7 @@ impl OpPrecedenceClass {
             OpPrecedenceClass::UnaryPlusMinusNot,
             OpPrecedenceClass::MultDivMod,
             OpPrecedenceClass::AddSub,
+            OpPrecedenceClass::RelationalAndRedirection,
             OpPrecedenceClass::Assignment,
         ]
         .iter()
@@ -47,6 +48,13 @@ impl OpPrecedenceClass {
             (OpPrecedenceClass::Assignment, Token::AssignEquals) => true,
             (OpPrecedenceClass::Assignment, Token::PlusEquals) => true,
             (OpPrecedenceClass::Assignment, Token::MinusEquals) => true,
+
+            (OpPrecedenceClass::RelationalAndRedirection, Token::LeftCaret) => true,
+            (OpPrecedenceClass::RelationalAndRedirection, Token::LessEqual) => true,
+            (OpPrecedenceClass::RelationalAndRedirection, Token::CompareEquals) => true,
+            (OpPrecedenceClass::RelationalAndRedirection, Token::BangEqual) => true,
+            (OpPrecedenceClass::RelationalAndRedirection, Token::RightCaret) => true,
+            (OpPrecedenceClass::RelationalAndRedirection, Token::GreaterEqual) => true,
 
             (OpPrecedenceClass::AddSub, Token::Minus) => true,
             (OpPrecedenceClass::AddSub, Token::Plus) => true,
@@ -78,6 +86,7 @@ impl OperatorOperandType {
     pub fn for_class(class: &OpPrecedenceClass) -> OperatorOperandType {
         match class {
             OpPrecedenceClass::Assignment => OperatorOperandType::Binary,
+            OpPrecedenceClass::RelationalAndRedirection => OperatorOperandType::Binary,
             OpPrecedenceClass::AddSub => OperatorOperandType::Binary,
             OpPrecedenceClass::MultDivMod => OperatorOperandType::Binary,
             OpPrecedenceClass::UnaryPlusMinusNot => OperatorOperandType::UnaryPrefix,

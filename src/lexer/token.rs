@@ -34,7 +34,15 @@ pub enum Token {
     Slash,
     Mod,
 
-    // TODO: relational and redirection operators
+    // Relational and redirection
+    LeftCaret,
+    LessEqual,
+    CompareEquals,
+    BangEqual,
+    RightCaret,
+    GreaterEqual,
+    // TODO: redirection operators
+
     // TODO: matching, nonmatching operators
     // TODO: logical and/or
 

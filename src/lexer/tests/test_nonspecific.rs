@@ -64,3 +64,24 @@ fn test_statement_separator() -> Result<(), TokenizeError> {
 
     Ok(())
 }
+
+
+#[test]
+fn test_comparisons() -> Result<(), TokenizeError> {
+    let source = "< <= == != > >=";
+    let tokens = tokenize(source)?;
+
+    assert_eq!(
+        tokens,
+        vec![
+            Token::LeftCaret,
+            Token::LessEqual,
+            Token::CompareEquals,
+            Token::BangEqual,
+            Token::RightCaret,
+            Token::GreaterEqual
+        ]
+    );
+
+    Ok(())
+}
