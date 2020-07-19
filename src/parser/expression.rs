@@ -431,4 +431,36 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_single_binary_operator_nested_no_assoc() -> Result<(), ParseError> {
+        let tokens: &[Token] = &[
+            Token::Identifier(String::from("myvar")),
+            Token::AssignEquals,
+            Token::OpenParen,
+            Token::Identifier(String::from("myvar2")),
+            Token::AssignEquals,
+            Token::NumericLiteral(5.),
+            Token::CloseParen,
+        ];
+
+        let (consumed_tokens, expression) = super::parse_expression(tokens)?;
+
+        assert_eq!(
+            expression,
+            Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::BinaryOperation(
+                    BinOp::Assign,
+                    Box::new(Expression::VariableValue(String::from("myvar2"))),
+                    Box::new(Expression::NumericLiteral(5.))
+                ))
+            )
+        );
+
+        assert_eq!(consumed_tokens, 7);
+
+        Ok(())
+    }
 }
