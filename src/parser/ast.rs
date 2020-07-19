@@ -71,6 +71,14 @@ impl BinOp {
             _ => None,
         }
     }
+
+    pub fn is_valid_op(token: &Token) -> bool {
+        if let Some(_) = BinOp::partial_from_token(token) {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -89,6 +97,14 @@ impl UnOp {
             Token::Increment => Some(UnOp::Increment),
             Token::Decrement => Some(UnOp::Decrement),
             _ => None,
+        }
+    }
+
+    pub fn is_valid_op(token: &Token) -> bool {
+        if let Some(_) = UnOp::partial_from_token(token) {
+            true
+        } else {
+            false
         }
     }
 }
