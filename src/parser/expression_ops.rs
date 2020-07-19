@@ -11,20 +11,20 @@ pub struct OperatorHierarchyParser {
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum OpPrecedenceClass {
-    Assignment = 1,
-    // Conditional = 2,
-    // LogicalOr = 3,
-    // LogicalAnd = 4,
-    // ArrayMembership = 5,
-    // Matching = 6,
-    // RelationalAndRedirection = 7,
+    Assignment,
+    // Conditional,
+    // LogicalOr,
+    // LogicalAnd,
+    // ArrayMembership,
+    // Matching,
+    // RelationalAndRedirection,
     // TODO: How do we handle string concat?
-    AddSub = 9,
-    MultDivMod = 10,
-    UnaryPlusMinusNot = 11,
-    // Exponentiation = 12,
-    IncrementDecrement = 13,
-    FieldReference = 14,
+    AddSub,
+    MultDivMod,
+    UnaryPlusMinusNot,
+    // Exponentiation,
+    IncrementDecrement,
+    FieldReference,
     // Grouping (parens) are highest, but handled separately
 }
 
