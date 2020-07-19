@@ -1,6 +1,8 @@
 mod ast;
 mod parse_error;
 
+mod utils;
+
 mod action;
 mod expression;
 mod expression_ops;

@@ -1,6 +1,6 @@
 use super::{
     ast::{BuiltinCommand, Statement},
-    expression::parse_expression,
+    expression::parse_expression, utils::consume_all_statement_separators,
 };
 use crate::lexer::Token;
 use crate::parser::ast::Action;
@@ -27,9 +27,7 @@ pub fn parse_statements(tokens: &[Token]) -> Result<(usize, Vec<Statement>), Par
         statements.push(statement);
 
         position = position + consumed_tokens;
-        while let Some(Token::StatementSeparator) = tokens.get(position) {
-            position = position + 1;
-        }
+        position = position + consume_all_statement_separators(&tokens[position..]);
     }
 
     Ok((position, statements))
