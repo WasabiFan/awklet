@@ -1,12 +1,9 @@
-use super::{
-    ast::{BinOp, UnOp},
-    parse_error::ParseError,
-};
+use super::{ast::BinOp, parse_error::ParseError};
 use crate::lexer::Token;
 use crate::parser::ast::Expression;
 
 pub struct PartialAstBuilder {
-    op_tree_roots: Vec<PartialAstNode>
+    op_tree_roots: Vec<PartialAstNode>,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
