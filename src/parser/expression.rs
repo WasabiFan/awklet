@@ -481,20 +481,18 @@ mod tests {
                     Box::new(Expression::NumericLiteral(5.)),
                     Box::new(Expression::FunctionCall(
                         String::from("somefunc"),
-                        vec![
-                            Expression::BinaryOperation(
-                                BinOp::Assign,
-                                Box::new(Expression::VariableValue(String::from("myvar"))),
-                                Box::new(Expression::BinaryOperation(
-                                    BinOp::Divide,
-                                    Box::new(Expression::NumericLiteral(5.)),
-                                    Box::new(Expression::UnaryOperation(
-                                        UnOp::Negation,
-                                        Box::new(Expression::NumericLiteral(5.)))
-                                    )
+                        vec![Expression::BinaryOperation(
+                            BinOp::Assign,
+                            Box::new(Expression::VariableValue(String::from("myvar"))),
+                            Box::new(Expression::BinaryOperation(
+                                BinOp::Divide,
+                                Box::new(Expression::NumericLiteral(5.)),
+                                Box::new(Expression::UnaryOperation(
+                                    UnOp::Negation,
+                                    Box::new(Expression::NumericLiteral(5.))
                                 ))
-                            )
-                        ]
+                            ))
+                        )]
                     ))
                 ))
             )

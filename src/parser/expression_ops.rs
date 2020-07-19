@@ -224,7 +224,7 @@ impl OperatorParser {
                         replacement_slice.iter().cloned(),
                     );
                     start = operator_position + 1;
-                },
+                }
                 (Some(pre), OperatorOperandType::UnaryPostfix, None) => {
                     let new_expression = Expression::UnaryOperation(
                         UnOp::partial_from_token(token).ok_or(ParseError::SyntaxError)?,
@@ -475,7 +475,6 @@ mod tests {
                 Box::new(Expression::UnaryOperation(
                     UnOp::FieldReference,
                     Box::new(Expression::VariableValue(String::from("myvar1"))),
-                    
                 )),
                 Box::new(Expression::VariableValue(String::from("myvar2")))
             )
@@ -498,9 +497,8 @@ mod tests {
         builder.add_operator_token(Token::Plus);
         builder.add_known_expression(Expression::VariableValue(String::from("e")));
 
-        
         let parsed_expression = builder.parse()?;
-        
+
         //((a+((b*c)/d))+e)
         assert_eq!(
             parsed_expression,
@@ -515,11 +513,9 @@ mod tests {
                             BinOp::Multiply,
                             Box::new(Expression::VariableValue(String::from("b"))),
                             Box::new(Expression::VariableValue(String::from("c"))),
-                            
                         )),
                         Box::new(Expression::VariableValue(String::from("d"))),
                     )),
-                    
                 )),
                 Box::new(Expression::VariableValue(String::from("e")))
             )
