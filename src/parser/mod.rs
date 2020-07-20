@@ -1,4 +1,4 @@
-mod ast;
+pub mod ast;
 mod parse_error;
 
 mod utils;
@@ -11,10 +11,10 @@ mod rule;
 
 use ast::{Ast, Rule};
 
-use parse_error::ParseError;
+pub use parse_error::ParseError;
 
-use rule::parse_rule;
 use crate::lexer::Token;
+use rule::parse_rule;
 
 pub fn parse(tokens: &[Token]) -> Result<Ast, ParseError> {
     let mut remaining_tokens = &tokens[..];
