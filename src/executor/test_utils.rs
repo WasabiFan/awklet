@@ -1,10 +1,9 @@
-
-use std::cell::RefCell;
 use super::Environment;
+use std::cell::RefCell;
 
 #[derive(Debug, Default)]
 pub struct TestEnvironment {
-    pub printed_lines: RefCell<Vec<String>>
+    pub printed_lines: RefCell<Vec<String>>,
 }
 
 impl Environment for TestEnvironment {

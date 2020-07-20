@@ -3,7 +3,7 @@ use super::VariableValue;
 #[derive(Default)]
 pub struct Record {
     full_text: String,
-    fields: Vec<String>
+    fields: Vec<String>,
 }
 
 impl Record {
@@ -16,7 +16,11 @@ impl Record {
         // TODO: use OFS for output
         match field {
             0 => VariableValue::NumericString(self.full_text.clone()),
-            _ => VariableValue::NumericString(self.fields.get(field - 1).map_or(String::from(""), |val| val.clone()))
+            _ => VariableValue::NumericString(
+                self.fields
+                    .get(field - 1)
+                    .map_or(String::from(""), |val| val.clone()),
+            ),
         }
     }
 }
