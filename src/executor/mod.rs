@@ -1,24 +1,16 @@
-use crate::parser::ast::{Ast, Pattern, Action};
+use crate::parser::ast::{Ast, Pattern};
 use std::{rc::Rc, collections::HashMap};
+use input::Record;
+
+#[cfg(test)]
+mod test_utils;
+
+mod input;
+mod action;
 
 #[derive(Debug)]
 pub enum ExecutionError {
     NoSuchVariable(String),
-}
-
-#[derive(Default)]
-struct Record {
-    full_text: String,
-    fields: Vec<String>
-}
-
-impl Record {
-    pub fn get_field(&self, field: usize) -> &str {
-        match field {
-            0 => &self.full_text[..],
-            _ => self.fields.get(field - 1).map_or("", |val| &val[..])
-        }
-    }
 }
 
 pub trait Environment {
@@ -40,18 +32,6 @@ impl Closure {
     }
 }
 
-struct Context {
-    pub env: Rc<dyn Environment>,
-    pub record: Record
-}
-
-impl Context {
-    pub fn new(env: Rc<dyn Environment>, record: Record) -> Context {
-        Context { env: env, record }
-    }
-}
-
-
 pub struct Executor {
     env: Rc<dyn Environment>,
     root_closure: Closure,
@@ -64,45 +44,25 @@ impl Executor {
     }
 
     pub fn begin(&mut self) -> Result<(), ExecutionError> {
-        let context = Context::new(self.env.clone(), Record::default());
+        let record = Record::default();
         for rule in self
             .program
             .rules
             .iter()
             .filter(|r| r.pattern == Pattern::Begin)
         {
-            execute_action(&rule.action, &context, &self.root_closure)?;
+            self.execute_action(&rule.action, &record)?;
         }
 
         Ok(())
     }
 }
 
-fn execute_action(action: &Action, context: &Context, _closure: &Closure) -> Result<(), ExecutionError> {
-    if let Action::Empty = action {
-        context.env.print(context.record.get_field(0));
-        return Ok(())
-    }
-
-    todo!();
-}
-
 #[cfg(test)]
 mod tests {
     use crate::parser::ast::{Rule, Ast, Pattern, Action};
-    use super::{Environment, Executor, ExecutionError};
-    use std::{rc::Rc, cell::RefCell};
-
-    #[derive(Debug, Default)]
-    struct TestEnvironment {
-        printed_lines: RefCell<Vec<String>>
-    }
-
-    impl Environment for TestEnvironment {
-        fn print(&self, string: &str) {
-            self.printed_lines.borrow_mut().push(String::from(string));
-        }
-     }
+    use super::{Executor, ExecutionError, test_utils::TestEnvironment};
+    use std::{rc::Rc};
 
     #[test]
     fn test_begin_empty_action() -> Result<(), ExecutionError> {
