@@ -1,12 +1,13 @@
-use crate::parser::ast::{Ast, Pattern};
+use crate::parser::ast::{Ast, Pattern, Action, BuiltinCommand, Statement};
 use std::{rc::Rc, collections::HashMap};
 use input::Record;
+use engine::ExecutionEngine;
 
 #[cfg(test)]
 mod test_utils;
 
+mod engine;
 mod input;
-mod action;
 
 #[derive(Debug)]
 pub enum ExecutionError {
@@ -17,30 +18,26 @@ pub trait Environment {
     fn print(&self, string: &str);
 }
 
+#[derive(Debug, Default)]
 pub struct Closure {
     // TODO: variable types
     variables: HashMap<String, String>
 }
 
 impl Closure {
-    pub fn new() -> Closure {
-        Closure { variables: HashMap::new() }
-    }
-
     pub fn get_variable(&self, name: &str) -> Result<&String, ExecutionError> {
         self.variables.get(name).ok_or(ExecutionError::NoSuchVariable(String::from(name)))
     }
 }
 
-pub struct Executor {
-    env: Rc<dyn Environment>,
-    root_closure: Closure,
+pub struct ProgramExecutor {
     program: Ast,
+    engine: ExecutionEngine,
 }
 
-impl Executor {
-    pub fn new(program: Ast, env: Rc<dyn Environment>) -> Executor {
-        Executor { program, env, root_closure: Closure::new() }
+impl ProgramExecutor {
+    pub fn new(program: Ast, env: Rc<dyn Environment>) -> ProgramExecutor {
+        ProgramExecutor { program, engine: ExecutionEngine::new(env) }
     }
 
     pub fn begin(&mut self) -> Result<(), ExecutionError> {
@@ -56,12 +53,23 @@ impl Executor {
 
         Ok(())
     }
+
+    fn execute_action(&self, action: &Action, record: &Record) -> Result<(), ExecutionError> {
+        match action {
+            Action::Empty => {
+                self.engine.execute_statements(record, &[
+                    Statement::Command(BuiltinCommand::Print, vec![])
+                ])
+            },
+            Action::Present(statements) => self.engine.execute_statements(record, statements)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::parser::ast::{Rule, Ast, Pattern, Action};
-    use super::{Executor, ExecutionError, test_utils::TestEnvironment};
+    use super::{ProgramExecutor, ExecutionError, test_utils::TestEnvironment};
     use std::{rc::Rc};
 
     #[test]
@@ -76,7 +84,7 @@ mod tests {
         };
 
         let env = Rc::new(TestEnvironment::default());
-        let mut executor = Executor::new(program, env.clone());
+        let mut executor = ProgramExecutor::new(program, env.clone());
         executor.begin()?;
 
         assert_eq!(env.printed_lines.borrow().clone(), vec![String::from("")]);
