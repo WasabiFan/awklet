@@ -3,7 +3,7 @@ use super::{
     OUTPUT_FIELD_SEPARATOR_NAME, OUTPUT_RECORD_SEPARATOR_NAME,
 };
 use crate::parser::ast::{BinOp, BuiltinCommand, Expression, Statement, UnOp};
-use std::rc::Rc;
+use std::{cmp::Ordering, rc::Rc};
 
 use lazy_static::lazy_static;
 
@@ -148,6 +148,32 @@ impl ExecutionEngine {
         Ok(VariableValue::Numeric(operation(left_val, right_val)))
     }
 
+    fn evaluate_relational_op<F>(
+        &mut self,
+        record: &mut Record,
+        left: &Expression,
+        right: &Expression,
+        cmp: F,
+    ) -> Result<VariableValue, EvaluationError>
+    where
+        F: Fn(Ordering) -> bool,
+    {
+        let left_val = self.evaluate_expression(record, left)?;
+        let right_val = self.evaluate_expression(record, right)?;
+
+        let ord = match (left_val, right_val) {
+            (VariableValue::String(a), VariableValue::String(b)) => a.cmp(&b),
+            (VariableValue::String(a), b) => a.cmp(&b.to_string()),
+            (a, VariableValue::String(b)) => a.to_string().cmp(&b),
+            (a, b) => a
+                .to_numeric()?
+                .partial_cmp(&b.to_numeric()?)
+                .unwrap_or(Ordering::Equal),
+        };
+
+        Ok(VariableValue::Numeric(if cmp(ord) { 1. } else { 0. }))
+    }
+
     fn evaluate_binary_operation(
         &mut self,
         record: &mut Record,
@@ -187,7 +213,26 @@ impl ExecutionEngine {
 
                 Ok(VariableValue::String(format!("{}{}", left_val, right_val)))
             }
-            _ => todo!(),
+            BinOp::CompareLess => {
+                self.evaluate_relational_op(record, left, right, |ord| ord == Ordering::Less)
+            }
+            BinOp::CompareLessEquals => self.evaluate_relational_op(record, left, right, |ord| {
+                matches!(ord, Ordering::Less | Ordering::Equal)
+            }),
+            BinOp::CompareEquals => {
+                self.evaluate_relational_op(record, left, right, |ord| ord == Ordering::Equal)
+            }
+            BinOp::CompareNotEquals => {
+                self.evaluate_relational_op(record, left, right, |ord| ord != Ordering::Equal)
+            }
+            BinOp::CompareGreaterEquals => {
+                self.evaluate_relational_op(record, left, right, |ord| {
+                    matches!(ord, Ordering::Greater | Ordering::Equal)
+                })
+            }
+            BinOp::CompareGreater => {
+                self.evaluate_relational_op(record, left, right, |ord| ord == Ordering::Greater)
+            }
         }
     }
 
@@ -765,6 +810,120 @@ mod tests {
         )?;
 
         assert_eq!(value, VariableValue::String(String::from("foo19.8")));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_given_less_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLess,
+                Box::new(Expression::NumericLiteral(19.)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_given_equal_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLess,
+                Box::new(Expression::NumericLiteral(19.8)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(0.));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_given_greater_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLess,
+                Box::new(Expression::NumericLiteral(19.9)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(0.));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_equal_given_less_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLessEquals,
+                Box::new(Expression::NumericLiteral(19.)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_equal_given_equal_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLessEquals,
+                Box::new(Expression::NumericLiteral(19.8)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
+        Ok(())
+    }
+
+    #[test]
+    fn compare_less_equal_given_greater_numeric() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::CompareLessEquals,
+                Box::new(Expression::NumericLiteral(19.9)),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(0.));
         Ok(())
     }
 }
