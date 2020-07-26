@@ -1,4 +1,4 @@
-use super::Environment;
+use crate::evaluator::Environment;
 use std::cell::RefCell;
 
 #[derive(Debug, Default)]
