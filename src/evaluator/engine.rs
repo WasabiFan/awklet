@@ -75,7 +75,8 @@ impl ExecutionEngine {
     where
         F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
     {
-        self.mutate_lvalue(record, exp, mutate_fn).map(|(old, _)| old)
+        self.mutate_lvalue(record, exp, mutate_fn)
+            .map(|(old, _)| old)
     }
 
     fn mutate_lvalue_get_new<F>(
@@ -87,7 +88,8 @@ impl ExecutionEngine {
     where
         F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
     {
-        self.mutate_lvalue(record, exp, mutate_fn).map(|(_, new)| new)
+        self.mutate_lvalue(record, exp, mutate_fn)
+            .map(|(_, new)| new)
     }
 
     fn resolve_to_field_index(
@@ -110,12 +112,16 @@ impl ExecutionEngine {
         exp: &Expression,
     ) -> Result<VariableValue, EvaluationError> {
         match op {
-            UnOp::Increment => self.mutate_lvalue_get_old(record, exp, |existing_value| {
-                Ok(VariableValue::Numeric(existing_value.to_numeric()? + 1.))
-            }).map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
-            UnOp::Decrement => self.mutate_lvalue_get_old(record, exp, |existing_value| {
-                Ok(VariableValue::Numeric(existing_value.to_numeric()? - 1.))
-            }).map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
+            UnOp::Increment => self
+                .mutate_lvalue_get_old(record, exp, |existing_value| {
+                    Ok(VariableValue::Numeric(existing_value.to_numeric()? + 1.))
+                })
+                .map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
+            UnOp::Decrement => self
+                .mutate_lvalue_get_old(record, exp, |existing_value| {
+                    Ok(VariableValue::Numeric(existing_value.to_numeric()? - 1.))
+                })
+                .map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
             UnOp::FieldReference => {
                 let index = self.resolve_to_field_index(record, exp)?;
                 Ok(record.get_field(index))
@@ -623,6 +629,77 @@ mod tests {
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(5.)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn add_assign() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        engine.set_variable("myvar", VariableValue::Numeric(5.));
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::AddAssign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(7.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(7.)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn add_assign_create() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::AddAssign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(2.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(2.)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn subtract_assign() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        engine.set_variable("myvar", VariableValue::Numeric(5.));
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::SubtractAssign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(3.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(3.)
         );
         Ok(())
     }
