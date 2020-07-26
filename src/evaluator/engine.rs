@@ -181,6 +181,12 @@ impl ExecutionEngine {
                     ))
                 })
             }
+            BinOp::Concatenate => {
+                let left_val = self.evaluate_expression(record, left)?.to_string();
+                let right_val = self.evaluate_expression(record, right)?.to_string();
+
+                Ok(VariableValue::String(format!("{}{}", left_val, right_val)))
+            }
             _ => todo!(),
         }
     }
@@ -192,6 +198,7 @@ impl ExecutionEngine {
     ) -> Result<VariableValue, EvaluationError> {
         match expression {
             Expression::NumericLiteral(num) => Ok(VariableValue::Numeric(*num)),
+            Expression::StringLiteral(text) => Ok(VariableValue::String(text.clone())),
             Expression::VariableValue(name) => Ok(self.closure.get_variable_or_default(name)),
             Expression::UnaryOperation(op, exp) => self.evaluate_unary_operation(record, op, exp),
             Expression::BinaryOperation(op, left, right) => {
@@ -701,6 +708,63 @@ mod tests {
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(3.)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn concatenate_strings() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Concatenate,
+                Box::new(Expression::StringLiteral(String::from("foo"))),
+                Box::new(Expression::StringLiteral(String::from("bar"))),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::String(String::from("foobar")));
+        Ok(())
+    }
+
+    #[test]
+    fn concatenate_with_integer() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Concatenate,
+                Box::new(Expression::StringLiteral(String::from("foo"))),
+                Box::new(Expression::NumericLiteral(19.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::String(String::from("foo19")));
+        Ok(())
+    }
+
+    #[test]
+    fn concatenate_with_float() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Concatenate,
+                Box::new(Expression::StringLiteral(String::from("foo"))),
+                Box::new(Expression::NumericLiteral(19.8)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::String(String::from("foo19.8")));
         Ok(())
     }
 }

@@ -59,7 +59,6 @@ pub enum BinOp {
     CompareNotEquals,
     CompareGreater,
     CompareGreaterEquals,
-    // TODO: StringConcat
 }
 
 impl BinOp {
