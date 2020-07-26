@@ -249,7 +249,8 @@ impl ExecutionEngine {
             Expression::BinaryOperation(op, left, right) => {
                 self.evaluate_binary_operation(record, op, left, right)
             }
-            _ => panic!("Unimplemented expression: {:?}", expression),
+            Expression::RegexLiteral(_pattern) => todo!(),
+            Expression::FunctionCall(_name, _args) => todo!(),
         }
     }
 
@@ -283,7 +284,9 @@ impl ExecutionEngine {
 
                 self.env.print(data.as_str());
             }
-            _ => todo!(),
+            Statement::Expression(exp) => {
+                let _result = self.evaluate_expression(record, exp)?;
+            }
         }
 
         Ok(())
