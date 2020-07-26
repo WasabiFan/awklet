@@ -96,9 +96,9 @@ impl ExecutionEngine {
                 let index = self.resolve_to_field_index(record, exp)?;
                 Ok(record.get_field(index))
             }
-            UnOp::Negation => self.mutate_lvalue(record, exp, |existing_value| {
-                Ok(VariableValue::Numeric(-existing_value.to_numeric()?))
-            }),
+            UnOp::Negation => Ok(VariableValue::Numeric(
+                -self.evaluate_expression(record, exp)?.to_numeric()?,
+            )),
         }
     }
 
@@ -162,6 +162,7 @@ impl ExecutionEngine {
     ) -> Result<VariableValue, EvaluationError> {
         match expression {
             Expression::NumericLiteral(num) => Ok(VariableValue::Numeric(*num)),
+            Expression::VariableValue(name) => Ok(self.closure.get_variable_or_default(name)),
             Expression::UnaryOperation(op, exp) => self.evaluate_unary_operation(record, op, exp),
             Expression::BinaryOperation(op, left, right) => {
                 self.evaluate_binary_operation(record, op, left, right)
@@ -479,7 +480,7 @@ mod tests {
         assert_eq!(value, VariableValue::Numeric(-5.));
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
-            &VariableValue::Numeric(-5.)
+            &VariableValue::Numeric(5.)
         );
         Ok(())
     }
