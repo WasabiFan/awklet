@@ -30,7 +30,7 @@ pub trait Environment {
 pub enum VariableValue {
     String(String),
     Numeric(f64),
-    NumericString(String),
+    NumericString(f64, String),
 }
 
 impl VariableValue {
@@ -40,9 +40,7 @@ impl VariableValue {
             VariableValue::String(string) => string
                 .parse()
                 .map_err(|_| EvaluationError::InvalidNumericLiteral(string.clone())),
-            VariableValue::NumericString(string) => string
-                .parse()
-                .map_err(|_| EvaluationError::InvalidNumericLiteral(string.clone())),
+            VariableValue::NumericString(num, _) => Ok(*num),
             VariableValue::Numeric(val) => Ok(*val),
         }
     }
@@ -50,7 +48,7 @@ impl VariableValue {
     pub fn to_string(&self) -> String {
         match self {
             VariableValue::String(string) => string.clone(),
-            VariableValue::NumericString(string) => string.clone(),
+            VariableValue::NumericString(_, string) => string.clone(),
             VariableValue::Numeric(val) => val.to_string(),
         }
     }
@@ -65,7 +63,7 @@ pub struct Closure {
 impl Closure {
     pub fn get_variable_or_default(&self, name: &str) -> VariableValue {
         self.get_variable(name)
-            .map_or(VariableValue::NumericString(String::from("")), |v| {
+            .map_or(VariableValue::NumericString(0., String::from("")), |v| {
                 v.clone()
             })
     }

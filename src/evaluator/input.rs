@@ -55,13 +55,18 @@ impl Record {
     }
 
     pub fn get_field(&self, field: usize) -> VariableValue {
-        match field {
-            0 => VariableValue::NumericString(self.full_text.clone()),
-            _ => VariableValue::NumericString(
-                self.fields
-                    .get(field - 1)
-                    .map_or(String::from(""), |val| val.clone()),
-            ),
+        let str_val = match field {
+            0 => self.full_text.clone(),
+            _ => self
+                .fields
+                .get(field - 1)
+                .map_or(String::from(""), |val| val.clone()),
+        };
+
+        if let Ok(num) = str_val.parse() {
+            VariableValue::NumericString(num, str_val)
+        } else {
+            VariableValue::String(str_val)
         }
     }
 
@@ -155,10 +160,7 @@ mod tests {
         );
 
         let field_val = record.get_field(0);
-        assert_eq!(
-            field_val,
-            VariableValue::NumericString(String::from("foo bar"))
-        );
+        assert_eq!(field_val, VariableValue::String(String::from("foo bar")));
     }
 
     #[test]
@@ -170,13 +172,25 @@ mod tests {
 
         let field_val_1 = record.get_field(1);
         let field_val_2 = record.get_field(2);
-        assert_eq!(
-            field_val_1,
-            VariableValue::NumericString(String::from("foo"))
+        assert_eq!(field_val_1, VariableValue::String(String::from("foo")));
+        assert_eq!(field_val_2, VariableValue::String(String::from("bar")));
+    }
+
+    #[test]
+    fn get_numeric_fields() {
+        let record = Record::new(
+            String::from("foo 314e-2 bar"),
+            vec![
+                String::from("foo"),
+                String::from("314e-2"),
+                String::from("bar"),
+            ],
         );
+
+        let field_val = record.get_field(2);
         assert_eq!(
-            field_val_2,
-            VariableValue::NumericString(String::from("bar"))
+            field_val,
+            VariableValue::NumericString(3.14, String::from("314e-2"))
         );
     }
 
@@ -188,7 +202,7 @@ mod tests {
         );
 
         let field_val = record.get_field(3);
-        assert_eq!(field_val, VariableValue::NumericString(String::from("")));
+        assert_eq!(field_val, VariableValue::String(String::from("")));
     }
 
     #[test]
@@ -296,7 +310,7 @@ mod tests {
 
         assert_eq!(
             record.get_field(1),
-            VariableValue::NumericString(String::from("foo"))
+            VariableValue::String(String::from("foo"))
         );
 
         assert_eq!(

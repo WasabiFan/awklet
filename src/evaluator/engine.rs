@@ -301,7 +301,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::NumericString(String::from("bar")));
+        assert_eq!(value, VariableValue::String(String::from("bar")));
         Ok(())
     }
 
@@ -326,7 +326,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::NumericString(String::from("")));
+        assert_eq!(value, VariableValue::String(String::from("")));
         Ok(())
     }
 
@@ -380,11 +380,11 @@ mod tests {
         assert_eq!(value, VariableValue::Numeric(3.));
         assert_eq!(
             record.get_field(2),
-            VariableValue::NumericString(String::from("3"))
+            VariableValue::NumericString(3., String::from("3"))
         );
         assert_eq!(
             record.get_field(0),
-            VariableValue::NumericString(String::from("some 3 record"))
+            VariableValue::String(String::from("some 3 record"))
         );
         Ok(())
     }
@@ -435,6 +435,28 @@ mod tests {
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(6.)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn increment_nonexistent() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::UnaryOperation(
+                UnOp::Increment,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(1.)
         );
         Ok(())
     }
