@@ -145,7 +145,7 @@ mod tests {
     use std::rc::Rc;
 
     #[test]
-    fn test_begin_empty_action() -> Result<(), EvaluationError> {
+    fn begin_empty_action() -> Result<(), EvaluationError> {
         let program = Ast {
             rules: vec![Rule {
                 pattern: Pattern::Begin,
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_set_variable() -> Result<(), EvaluationError> {
+    fn get_set_variable() -> Result<(), EvaluationError> {
         let program = Ast { rules: vec![] };
 
         let env = Rc::new(TestEnvironment::default());
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_nonexistent_variable() {
+    fn get_nonexistent_variable() {
         let program = Ast { rules: vec![] };
 
         let env = Rc::new(TestEnvironment::default());
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_begin_present_action() -> Result<(), EvaluationError> {
+    fn begin_present_action() -> Result<(), EvaluationError> {
         let program = Ast {
             rules: vec![Rule {
                 pattern: Pattern::Begin,
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_begin_record_value() -> Result<(), EvaluationError> {
+    fn begin_record_value() -> Result<(), EvaluationError> {
         let program = Ast {
             rules: vec![Rule {
                 pattern: Pattern::Begin,

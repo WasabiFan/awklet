@@ -62,7 +62,7 @@ mod tests {
     };
 
     #[test]
-    fn test_empty_action() -> Result<(), ParseError> {
+    fn empty_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[];
 
         let (consumed_tokens, action) = super::parse_action(tokens)?;
@@ -74,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    fn test_no_statements_action() -> Result<(), ParseError> {
+    fn no_statements_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::OpenBrace, Token::CloseBrace];
 
         let (consumed_tokens, action) = super::parse_action(tokens)?;
@@ -86,7 +86,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_no_args_command_action() -> Result<(), ParseError> {
+    fn single_no_args_command_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenBrace,
             Token::Identifier(String::from("print")),
@@ -105,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_multi_args_command_action() -> Result<(), ParseError> {
+    fn single_multi_args_command_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenBrace,
             Token::Identifier(String::from("print")),
@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_expression_action() -> Result<(), ParseError> {
+    fn single_expression_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenBrace,
             Token::Identifier(String::from("myvar")),
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_statement_action() -> Result<(), ParseError> {
+    fn multi_statement_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenBrace,
             Token::Identifier(String::from("print")),

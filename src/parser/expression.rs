@@ -87,7 +87,7 @@ mod tests {
     use crate::parser::ast::{BinOp, UnOp};
 
     #[test]
-    fn test_variable() -> Result<(), ParseError> {
+    fn variable() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::Identifier(String::from("foo"))];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_call_no_params() -> Result<(), ParseError> {
+    fn function_call_no_params() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("foo")),
             Token::OpenParen,
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_call_one_var_param() -> Result<(), ParseError> {
+    fn function_call_one_var_param() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("foo")),
             Token::OpenParen,
@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_call_two_var_param() -> Result<(), ParseError> {
+    fn function_call_two_var_param() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("foo")),
             Token::OpenParen,
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_numeric_literal() -> Result<(), ParseError> {
+    fn single_numeric_literal() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::NumericLiteral(5.)];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_negative_numeric_literal() -> Result<(), ParseError> {
+    fn single_negative_numeric_literal() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::Minus, Token::NumericLiteral(5.)];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_unary_negative_complex() -> Result<(), ParseError> {
+    fn unary_negative_complex() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Minus,
             Token::OpenParen,
@@ -216,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_item_paren() -> Result<(), ParseError> {
+    fn single_item_paren() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenParen,
             Token::NumericLiteral(5.),
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mismatched_paren_group() -> Result<(), ParseError> {
+    fn mismatched_paren_group() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::OpenParen, Token::NumericLiteral(5.)];
 
         assert_matches!(
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mismatched_function_call_parens() -> Result<(), ParseError> {
+    fn mismatched_function_call_parens() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("foo")),
             Token::OpenParen,
@@ -260,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_string_literal() -> Result<(), ParseError> {
+    fn single_string_literal() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::StringLiteral(String::from("foobar"))];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_regex_literal() -> Result<(), ParseError> {
+    fn single_regex_literal() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::RegexLiteral(String::from("a.*b"))];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_reference_numeric() -> Result<(), ParseError> {
+    fn field_reference_numeric() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::FieldReference, Token::NumericLiteral(2.)];
 
         let (consumed_tokens, expression) = super::parse_expression(tokens)?;
@@ -305,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_function_call_within_paren() -> Result<(), ParseError> {
+    fn function_call_within_paren() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenParen,
             Token::Identifier(String::from("foo")),
@@ -335,7 +335,7 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_function_call() -> Result<(), ParseError> {
+    fn complex_function_call() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenParen,
             Token::Identifier(String::from("foo")),
@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_binary_operator() -> Result<(), ParseError> {
+    fn single_binary_operator() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("myvar")),
             Token::AssignEquals,
@@ -399,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_binary_operator_multi_unit() -> Result<(), ParseError> {
+    fn single_binary_operator_multi_unit() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("myvar")),
             Token::AssignEquals,
@@ -429,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_binary_operator_nested_no_assoc() -> Result<(), ParseError> {
+    fn single_binary_operator_nested_no_assoc() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::Identifier(String::from("myvar")),
             Token::AssignEquals,
@@ -461,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_misc() -> Result<(), ParseError> {
+    fn nested_misc() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenParen,
             Token::OpenParen,
@@ -517,7 +517,7 @@ mod tests {
     }
 
     #[test]
-    fn test_comma_separated_regex_expression() -> Result<(), ParseError> {
+    fn comma_separated_regex_expression() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::RegexLiteral(String::from("a.*b")),
             Token::Comma,

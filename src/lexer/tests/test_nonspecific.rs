@@ -1,14 +1,14 @@
 use crate::lexer::{tokenize, Token, TokenizeError};
 
 #[test]
-fn test_syntax_error_invalid_token() {
+fn syntax_error_invalid_token() {
     let result = tokenize("@10");
 
     assert_matches!(result, Err(TokenizeError::SyntaxError));
 }
 
 #[test]
-fn test_basic_awk_program() -> Result<(), TokenizeError> {
+fn basic_awk_program() -> Result<(), TokenizeError> {
     let source = "BEGIN {
         print \"Hello, world!\"
     }";
@@ -31,7 +31,7 @@ fn test_basic_awk_program() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_statement_separator() -> Result<(), TokenizeError> {
+fn statement_separator() -> Result<(), TokenizeError> {
     let source = "BEGIN {
         print \"Hello, world!\"
         a = 5;
@@ -66,7 +66,7 @@ fn test_statement_separator() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_comparisons() -> Result<(), TokenizeError> {
+fn comparisons() -> Result<(), TokenizeError> {
     let source = "< <= == != > >=";
     let tokens = tokenize(source)?;
 

@@ -168,7 +168,7 @@ mod tests {
     use std::rc::Rc;
 
     #[test]
-    fn test_default_print_command() -> Result<(), EvaluationError> {
+    fn default_print_command() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -183,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multi_print() -> Result<(), EvaluationError> {
+    fn multi_print() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -220,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_reference_basic() -> Result<(), EvaluationError> {
+    fn field_reference_basic() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_reference_nonexistent() -> Result<(), EvaluationError> {
+    fn field_reference_nonexistent() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decrement() -> Result<(), EvaluationError> {
+    fn decrement() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -290,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decrement_field() -> Result<(), EvaluationError> {
+    fn decrement_field() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -326,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decrement_string() {
+    fn decrement_string() {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 

@@ -30,7 +30,7 @@ mod tests {
     use crate::parser::ast::{BinOp, Expression, UnOp};
 
     #[test]
-    fn test_begin() -> Result<(), ParseError> {
+    fn begin() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::BeginKeyword];
 
         let (consumed_tokens, pattern) = super::parse_pattern(tokens)?;
@@ -42,7 +42,7 @@ mod tests {
     }
 
     #[test]
-    fn test_end() -> Result<(), ParseError> {
+    fn end() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::EndKeyword];
 
         let (consumed_tokens, pattern) = super::parse_pattern(tokens)?;
@@ -54,7 +54,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty() -> Result<(), ParseError> {
+    fn empty() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::OpenBrace,
             Token::Identifier(String::from("print")),
@@ -72,7 +72,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_pattern_assignment() -> Result<(), ParseError> {
+    fn single_pattern_assignment() -> Result<(), ParseError> {
         // This is a silly program, but we first implemented assignment, so we'll use it.
         let tokens: &[Token] = &[
             Token::Identifier(String::from("myvar")),
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_range_pattern() -> Result<(), ParseError> {
+    fn range_pattern() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::FieldReference,
             Token::Identifier(String::from("myvar")),

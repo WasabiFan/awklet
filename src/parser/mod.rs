@@ -39,7 +39,7 @@ mod tests {
     use crate::lexer::tokenize;
 
     #[test]
-    fn test_parse_word_count() -> Result<(), ParseError> {
+    fn parse_word_count() -> Result<(), ParseError> {
         let program = "{
             words += NF
             chars += length + 1

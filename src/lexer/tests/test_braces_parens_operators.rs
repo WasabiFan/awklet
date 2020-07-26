@@ -1,7 +1,7 @@
 use crate::lexer::{tokenize, Token, TokenizeError};
 
 #[test]
-fn test_braces_parens() -> Result<(), TokenizeError> {
+fn braces_parens() -> Result<(), TokenizeError> {
     let tokens = tokenize("{{ ){( (}")?;
 
     assert_eq!(
@@ -21,7 +21,7 @@ fn test_braces_parens() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_math_operators() -> Result<(), TokenizeError> {
+fn math_operators() -> Result<(), TokenizeError> {
     let tokens = tokenize("1 +44.2 -4. / 18*99%2")?;
 
     assert_eq!(
@@ -45,7 +45,7 @@ fn test_math_operators() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_increment_decrement() -> Result<(), TokenizeError> {
+fn increment_decrement() -> Result<(), TokenizeError> {
     let tokens = tokenize("a++ + +b-- -2")?;
 
     assert_eq!(
@@ -66,7 +66,7 @@ fn test_increment_decrement() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_plus_equals() -> Result<(), TokenizeError> {
+fn plus_equals() -> Result<(), TokenizeError> {
     let tokens = tokenize("a+=-9")?;
 
     assert_eq!(
@@ -83,7 +83,7 @@ fn test_plus_equals() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_minus_equals() -> Result<(), TokenizeError> {
+fn minus_equals() -> Result<(), TokenizeError> {
     let tokens = tokenize("a -=-12")?;
 
     assert_eq!(
@@ -100,7 +100,7 @@ fn test_minus_equals() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_assignment() -> Result<(), TokenizeError> {
+fn assignment() -> Result<(), TokenizeError> {
     let tokens = tokenize("a = -88")?;
 
     assert_eq!(
@@ -117,7 +117,7 @@ fn test_assignment() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_field_reference_comma() -> Result<(), TokenizeError> {
+fn field_reference_comma() -> Result<(), TokenizeError> {
     let tokens = tokenize("print $2, $ 5")?;
 
     assert_eq!(

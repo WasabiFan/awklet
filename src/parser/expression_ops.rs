@@ -318,7 +318,7 @@ mod tests {
     };
 
     #[test]
-    fn test_binary_assignment_operator() -> Result<(), ParseError> {
+    fn binary_assignment_operator() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
@@ -340,7 +340,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_binary_subtraction() -> Result<(), ParseError> {
+    fn simple_binary_subtraction() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
@@ -362,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_assign_binary_subtraction() -> Result<(), ParseError> {
+    fn assign_binary_subtraction() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar")));
@@ -390,7 +390,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_unary_minus_numeric() -> Result<(), ParseError> {
+    fn simple_unary_minus_numeric() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::Minus);
@@ -407,7 +407,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_unary_minus_variable() -> Result<(), ParseError> {
+    fn simple_unary_minus_variable() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::Minus);
@@ -427,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn test_minus_negative() -> Result<(), ParseError> {
+    fn minus_negative() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
@@ -455,7 +455,7 @@ mod tests {
     #[test]
     #[ignore]
     // Double-negative requires special handling of nested ops, which is not yet implemented.
-    fn test_double_negative() -> Result<(), ParseError> {
+    fn double_negative() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
@@ -485,7 +485,7 @@ mod tests {
     }
 
     #[test]
-    fn test_increment() -> Result<(), ParseError> {
+    fn increment() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("myvar1")));
@@ -511,7 +511,7 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_precedence_1() -> Result<(), ParseError> {
+    fn basic_precedence_1() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_operator_token(Token::FieldReference);
@@ -537,7 +537,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arithmetic_precedence() -> Result<(), ParseError> {
+    fn arithmetic_precedence() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("a")));
@@ -578,7 +578,7 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_precedence() -> Result<(), ParseError> {
+    fn complex_precedence() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("a")));
@@ -619,7 +619,7 @@ mod tests {
     }
 
     #[test]
-    fn test_string_literal_concat() -> Result<(), ParseError> {
+    fn string_literal_concat() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::StringLiteral(String::from("a")));
@@ -640,7 +640,7 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_concat() -> Result<(), ParseError> {
+    fn complex_concat() -> Result<(), ParseError> {
         let mut builder = OperatorHierarchyParser::new();
 
         builder.add_known_expression(Expression::VariableValue(String::from("a")));

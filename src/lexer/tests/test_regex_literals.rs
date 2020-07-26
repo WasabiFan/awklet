@@ -1,7 +1,7 @@
 use crate::lexer::{tokenize, Token, TokenizeError};
 
 #[test]
-fn test_regex_single_literal() -> Result<(), TokenizeError> {
+fn regex_single_literal() -> Result<(), TokenizeError> {
     let tokens = tokenize("/[a-z]+/")?;
 
     assert_eq!(tokens, vec![Token::RegexLiteral(String::from("[a-z]+"))]);
@@ -10,7 +10,7 @@ fn test_regex_single_literal() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_regex_escaping() -> Result<(), TokenizeError> {
+fn regex_escaping() -> Result<(), TokenizeError> {
     let tokens = tokenize("/\\d+\\/\\d+/")?;
 
     assert_eq!(tokens, vec![Token::RegexLiteral(String::from("\\d+/\\d+"))]);
@@ -19,7 +19,7 @@ fn test_regex_escaping() -> Result<(), TokenizeError> {
 }
 
 #[test]
-fn test_regex_newline_break() -> Result<(), TokenizeError> {
+fn regex_newline_break() -> Result<(), TokenizeError> {
     let tokens = tokenize("2 / 3\n 5/6")?;
 
     assert_eq!(

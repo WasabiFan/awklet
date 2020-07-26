@@ -108,7 +108,7 @@ mod tests {
     use crate::evaluator::{Closure, EvaluationError, VariableValue};
 
     #[test]
-    fn test_parse_space_internal_separator() -> Result<(), EvaluationError> {
+    fn parse_space_internal_separator() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let record = Record::parse_from("foo \nbar \t abc", &closure)?;
 
@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_space_trimming() -> Result<(), EvaluationError> {
+    fn parse_space_trimming() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let record = Record::parse_from("\t  foo bar abc\n ", &closure)?;
 
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_full_record() {
+    fn get_full_record() {
         let record = Record::new(
             String::from("foo bar"),
             vec![String::from("foo"), String::from("bar")],
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_intermediate_fields() {
+    fn get_intermediate_fields() {
         let record = Record::new(
             String::from("foo bar"),
             vec![String::from("foo"), String::from("bar")],
@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_nonexistent_field() {
+    fn get_nonexistent_field() {
         let record = Record::new(
             String::from("foo bar"),
             vec![String::from("foo"), String::from("bar")],
@@ -192,7 +192,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_whole_record() -> Result<(), EvaluationError> {
+    fn update_whole_record() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let mut record = Record::new(
             String::from("foo bar"),
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_single_field() -> Result<(), EvaluationError> {
+    fn update_single_field() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let mut record = Record::new(
             String::from("foo bar"),
@@ -234,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_create_next_field() -> Result<(), EvaluationError> {
+    fn update_create_next_field() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let mut record = Record::new(
             String::from("foo bar"),
@@ -259,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_create_gap_field() -> Result<(), EvaluationError> {
+    fn update_create_gap_field() -> Result<(), EvaluationError> {
         let closure = Closure::default();
         let mut record = Record::new(
             String::from("foo bar"),
@@ -286,7 +286,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ofs_without_write() -> Result<(), EvaluationError> {
+    fn ofs_without_write() -> Result<(), EvaluationError> {
         let mut closure = Closure::default();
         closure.set_variable("OFS", VariableValue::String(String::from(",")));
         let record = Record::new(
@@ -311,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
+    fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
         let mut closure = Closure::default();
         closure.set_variable("OFS", VariableValue::String(String::from(",")));
         let mut record = Record::new(
@@ -333,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_single_field_custom_ofs() -> Result<(), EvaluationError> {
+    fn update_single_field_custom_ofs() -> Result<(), EvaluationError> {
         let mut closure = Closure::default();
         closure.set_variable("OFS", VariableValue::String(String::from(",")));
         let mut record = Record::new(

@@ -29,7 +29,7 @@ mod tests {
     };
 
     #[test]
-    fn test_only_pattern() -> Result<(), ParseError> {
+    fn only_pattern() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::RegexLiteral(String::from("foo"))];
 
         let (consumed_tokens, rule) = super::parse_rule(tokens)?;
@@ -47,7 +47,7 @@ mod tests {
     }
 
     #[test]
-    fn test_only_action() -> Result<(), ParseError> {
+    fn only_action() -> Result<(), ParseError> {
         let tokens: &[Token] = &[Token::OpenBrace, Token::CloseBrace];
 
         let (consumed_tokens, rule) = super::parse_rule(tokens)?;
@@ -65,7 +65,7 @@ mod tests {
     }
 
     #[test]
-    fn test_full_rule() -> Result<(), ParseError> {
+    fn full_rule() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::RegexLiteral(String::from("foo")),
             Token::OpenBrace,
@@ -87,7 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rule_after_rule() -> Result<(), ParseError> {
+    fn rule_after_rule() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::RegexLiteral(String::from("foo")),
             Token::OpenBrace,
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_separator_after_rule() -> Result<(), ParseError> {
+    fn separator_after_rule() -> Result<(), ParseError> {
         let tokens: &[Token] = &[
             Token::RegexLiteral(String::from("foo")),
             Token::OpenBrace,
