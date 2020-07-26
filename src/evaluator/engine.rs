@@ -2,7 +2,7 @@ use super::{
     input::Record, Closure, Environment, EvaluationError, VariableValue,
     OUTPUT_FIELD_SEPARATOR_NAME, OUTPUT_RECORD_SEPARATOR_NAME,
 };
-use crate::parser::ast::{BuiltinCommand, Expression, Statement, UnOp};
+use crate::parser::ast::{BinOp, BuiltinCommand, Expression, Statement, UnOp};
 use std::rc::Rc;
 
 use lazy_static::lazy_static;
@@ -102,6 +102,39 @@ impl ExecutionEngine {
         }
     }
 
+    fn evaluate_binary_numeric_op<F>(
+        &mut self,
+        record: &mut Record,
+        left: &Expression,
+        right: &Expression,
+        operation: F,
+    ) -> Result<VariableValue, EvaluationError>
+    where
+        F: Fn(f64, f64) -> f64,
+    {
+        let left_val = self.evaluate_expression(record, left)?.to_numeric()?;
+        let right_val = self.evaluate_expression(record, right)?.to_numeric()?;
+
+        Ok(VariableValue::Numeric(operation(left_val, right_val)))
+    }
+
+    fn evaluate_binary_operation(
+        &mut self,
+        record: &mut Record,
+        op: &BinOp,
+        left: &Expression,
+        right: &Expression,
+    ) -> Result<VariableValue, EvaluationError> {
+        match op {
+            BinOp::Add => self.evaluate_binary_numeric_op(record, left, right, |a, b| a + b),
+            BinOp::Subtract => self.evaluate_binary_numeric_op(record, left, right, |a, b| a - b),
+            BinOp::Multiply => self.evaluate_binary_numeric_op(record, left, right, |a, b| a * b),
+            BinOp::Divide => self.evaluate_binary_numeric_op(record, left, right, |a, b| a / b),
+            BinOp::Mod => self.evaluate_binary_numeric_op(record, left, right, |a, b| a % b),
+            _ => todo!(),
+        }
+    }
+
     pub fn evaluate_expression(
         &mut self,
         record: &mut Record,
@@ -110,6 +143,9 @@ impl ExecutionEngine {
         match expression {
             Expression::NumericLiteral(num) => Ok(VariableValue::Numeric(*num)),
             Expression::UnaryOperation(op, exp) => self.evaluate_unary_operation(record, op, exp),
+            Expression::BinaryOperation(op, left, right) => {
+                self.evaluate_binary_operation(record, op, left, right)
+            }
             _ => panic!("Unimplemented expression: {:?}", expression),
         }
     }
@@ -168,7 +204,7 @@ mod tests {
     use super::ExecutionEngine;
     use crate::{
         evaluator::{input::Record, test_utils::TestEnvironment, EvaluationError, VariableValue},
-        parser::ast::{BuiltinCommand, Expression, Statement, UnOp},
+        parser::ast::{BinOp, BuiltinCommand, Expression, Statement, UnOp},
     };
     use std::rc::Rc;
 
@@ -394,6 +430,101 @@ mod tests {
 
         assert_eq!(value, VariableValue::Numeric(-5.));
         assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(-5.));
+        Ok(())
+    }
+
+    #[test]
+    fn add() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Add,
+                Box::new(Expression::NumericLiteral(2.)),
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(4.));
+        Ok(())
+    }
+
+    #[test]
+    fn subtract() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Subtract,
+                Box::new(Expression::NumericLiteral(3.)),
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
+        Ok(())
+    }
+
+    #[test]
+    fn multiply() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Multiply,
+                Box::new(Expression::NumericLiteral(3.)),
+                Box::new(Expression::NumericLiteral(3.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(9.));
+        Ok(())
+    }
+
+    #[test]
+    fn divide() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Divide,
+                Box::new(Expression::NumericLiteral(12.)),
+                Box::new(Expression::NumericLiteral(3.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(4.));
+        Ok(())
+    }
+
+    #[test]
+    fn modulo() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Mod,
+                Box::new(Expression::NumericLiteral(11.)),
+                Box::new(Expression::NumericLiteral(5.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(1.));
         Ok(())
     }
 }
