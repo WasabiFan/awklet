@@ -31,7 +31,7 @@ impl Record {
         closure: &Closure,
     ) -> Result<Vec<String>, EvaluationError> {
         match closure
-            .get_variable(INPUT_FIELD_SEPARATOR_NAME)?
+            .get_variable_or_default(INPUT_FIELD_SEPARATOR_NAME)
             .to_string()
             .as_str()
         {
@@ -91,7 +91,7 @@ impl Record {
                 self.fields[fields_idx] = new_value;
                 self.full_text = self.fields.join(
                     closure
-                        .get_variable(OUTPUT_FIELD_SEPARATOR_NAME)?
+                        .get_variable_or_default(OUTPUT_FIELD_SEPARATOR_NAME)
                         .to_string()
                         .as_str(),
                 )

@@ -63,10 +63,15 @@ pub struct Closure {
 }
 
 impl Closure {
-    pub fn get_variable(&self, name: &str) -> Result<&VariableValue, EvaluationError> {
-        self.variables
-            .get(name)
-            .ok_or(EvaluationError::NoSuchVariable(String::from(name)))
+    pub fn get_variable_or_default(&self, name: &str) -> VariableValue {
+        self.get_variable(name)
+            .map_or(VariableValue::NumericString(String::from("")), |v| {
+                v.clone()
+            })
+    }
+
+    pub fn get_variable(&self, name: &str) -> Option<&VariableValue> {
+        self.variables.get(name)
     }
 
     pub fn set_variable(&mut self, name: &str, value: VariableValue) {
@@ -132,7 +137,12 @@ impl ProgramEvaluator {
     }
 
     pub fn get_variable(&mut self, name: &str) -> Result<VariableValue, EvaluationError> {
-        Ok(self.engine.borrow_mut().get_variable(name)?.clone())
+        Ok(self
+            .engine
+            .borrow_mut()
+            .get_variable(name)
+            .ok_or(EvaluationError::NoSuchVariable(String::from(name)))?
+            .clone())
     }
 }
 

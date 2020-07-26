@@ -35,7 +35,7 @@ impl ExecutionEngine {
         self.closure.set_variable(name, value);
     }
 
-    pub fn get_variable(&mut self, name: &str) -> Result<&VariableValue, EvaluationError> {
+    pub fn get_variable(&mut self, name: &str) -> Option<&VariableValue> {
         self.closure.get_variable(name)
     }
 
@@ -46,11 +46,11 @@ impl ExecutionEngine {
         mutate_fn: F,
     ) -> Result<VariableValue, EvaluationError>
     where
-        F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
+        F: FnOnce(VariableValue) -> Result<VariableValue, EvaluationError>,
     {
         match exp {
             Expression::VariableValue(name) => {
-                let current_value = self.closure.get_variable(name)?;
+                let current_value = self.closure.get_variable_or_default(name);
                 let new_value = mutate_fn(current_value)?;
                 self.closure.set_variable(name, new_value.clone());
                 Ok(new_value)
@@ -58,7 +58,7 @@ impl ExecutionEngine {
             Expression::UnaryOperation(UnOp::FieldReference, field_spec) => {
                 let index = self.resolve_to_field_index(record, field_spec)?;
                 let current_value = record.get_field(index);
-                let new_value = mutate_fn(&current_value)?;
+                let new_value = mutate_fn(current_value)?;
                 record.set_field(&self.closure, index, new_value.clone())?;
                 Ok(new_value)
             }
@@ -131,6 +131,26 @@ impl ExecutionEngine {
             BinOp::Multiply => self.evaluate_binary_numeric_op(record, left, right, |a, b| a * b),
             BinOp::Divide => self.evaluate_binary_numeric_op(record, left, right, |a, b| a / b),
             BinOp::Mod => self.evaluate_binary_numeric_op(record, left, right, |a, b| a % b),
+            BinOp::Assign => {
+                let new_value = self.evaluate_expression(record, right)?;
+                self.mutate_lvalue(record, left, |_| Ok(new_value))
+            }
+            BinOp::AddAssign => {
+                let new_value = self.evaluate_expression(record, right)?;
+                self.mutate_lvalue(record, left, |v| {
+                    Ok(VariableValue::Numeric(
+                        v.to_numeric()? + new_value.to_numeric()?,
+                    ))
+                })
+            }
+            BinOp::SubtractAssign => {
+                let new_value = self.evaluate_expression(record, right)?;
+                self.mutate_lvalue(record, left, |v| {
+                    Ok(VariableValue::Numeric(
+                        v.to_numeric()? - new_value.to_numeric()?,
+                    ))
+                })
+            }
             _ => todo!(),
         }
     }
@@ -168,11 +188,11 @@ impl ExecutionEngine {
 
                 let sep = self
                     .closure
-                    .get_variable(OUTPUT_FIELD_SEPARATOR_NAME)?
+                    .get_variable_or_default(OUTPUT_FIELD_SEPARATOR_NAME)
                     .to_string();
                 let terminator = self
                     .closure
-                    .get_variable(OUTPUT_RECORD_SEPARATOR_NAME)?
+                    .get_variable_or_default(OUTPUT_RECORD_SEPARATOR_NAME)
                     .to_string();
 
                 let mut data = output.join(&sep[..]);
@@ -326,7 +346,10 @@ mod tests {
         )?;
 
         assert_eq!(value, VariableValue::Numeric(4.));
-        assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(4.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(4.)
+        );
         Ok(())
     }
 
@@ -409,7 +432,10 @@ mod tests {
         )?;
 
         assert_eq!(value, VariableValue::Numeric(6.));
-        assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(6.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(6.)
+        );
         Ok(())
     }
 
@@ -429,7 +455,10 @@ mod tests {
         )?;
 
         assert_eq!(value, VariableValue::Numeric(-5.));
-        assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(-5.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(-5.)
+        );
         Ok(())
     }
 
@@ -525,6 +554,29 @@ mod tests {
         )?;
 
         assert_eq!(value, VariableValue::Numeric(1.));
+        Ok(())
+    }
+
+    #[test]
+    fn assign() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::BinaryOperation(
+                BinOp::Assign,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+                Box::new(Expression::NumericLiteral(5.)),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(5.));
+        assert_eq!(
+            engine.get_variable("myvar").unwrap(),
+            &VariableValue::Numeric(5.)
+        );
         Ok(())
     }
 }
