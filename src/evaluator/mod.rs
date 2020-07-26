@@ -47,11 +47,11 @@ impl VariableValue {
         }
     }
 
-    pub fn to_string(&self) -> Result<String, EvaluationError> {
+    pub fn to_string(&self) -> String {
         match self {
-            VariableValue::String(string) => Ok(string.clone()),
-            VariableValue::NumericString(string) => Ok(string.clone()),
-            VariableValue::Numeric(val) => Ok(val.to_string()),
+            VariableValue::String(string) => string.clone(),
+            VariableValue::NumericString(string) => string.clone(),
+            VariableValue::Numeric(val) => val.to_string(),
         }
     }
 }
@@ -101,20 +101,20 @@ impl ProgramEvaluator {
     }
 
     pub fn begin(&self) -> Result<(), EvaluationError> {
-        let record = Record::default();
+        let mut record = Record::default();
         for rule in self
             .program
             .rules
             .iter()
             .filter(|r| r.pattern == Pattern::Begin)
         {
-            self.execute_action(&rule.action, &record)?;
+            self.execute_action(&rule.action, &mut record)?;
         }
 
         Ok(())
     }
 
-    fn execute_action(&self, action: &Action, record: &Record) -> Result<(), EvaluationError> {
+    fn execute_action(&self, action: &Action, record: &mut Record) -> Result<(), EvaluationError> {
         match action {
             Action::Empty => self
                 .engine
