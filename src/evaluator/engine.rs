@@ -44,26 +44,50 @@ impl ExecutionEngine {
         record: &mut Record,
         exp: &Expression,
         mutate_fn: F,
-    ) -> Result<VariableValue, EvaluationError>
+    ) -> Result<(VariableValue, VariableValue), EvaluationError>
     where
-        F: FnOnce(VariableValue) -> Result<VariableValue, EvaluationError>,
+        F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
     {
         match exp {
             Expression::VariableValue(name) => {
                 let current_value = self.closure.get_variable_or_default(name);
-                let new_value = mutate_fn(current_value)?;
+                let new_value = mutate_fn(&current_value)?;
                 self.closure.set_variable(name, new_value.clone());
-                Ok(new_value)
+                Ok((current_value, new_value))
             }
             Expression::UnaryOperation(UnOp::FieldReference, field_spec) => {
                 let index = self.resolve_to_field_index(record, field_spec)?;
                 let current_value = record.get_field(index);
-                let new_value = mutate_fn(current_value)?;
+                let new_value = mutate_fn(&current_value)?;
                 record.set_field(&self.closure, index, new_value.clone())?;
-                Ok(new_value)
+                Ok((current_value, new_value))
             }
             _ => Err(EvaluationError::NonVariableAsLvalue(exp.clone())),
         }
+    }
+
+    fn mutate_lvalue_get_old<F>(
+        &mut self,
+        record: &mut Record,
+        exp: &Expression,
+        mutate_fn: F,
+    ) -> Result<VariableValue, EvaluationError>
+    where
+        F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
+    {
+        self.mutate_lvalue(record, exp, mutate_fn).map(|(old, _)| old)
+    }
+
+    fn mutate_lvalue_get_new<F>(
+        &mut self,
+        record: &mut Record,
+        exp: &Expression,
+        mutate_fn: F,
+    ) -> Result<VariableValue, EvaluationError>
+    where
+        F: FnOnce(&VariableValue) -> Result<VariableValue, EvaluationError>,
+    {
+        self.mutate_lvalue(record, exp, mutate_fn).map(|(_, new)| new)
     }
 
     fn resolve_to_field_index(
@@ -86,12 +110,12 @@ impl ExecutionEngine {
         exp: &Expression,
     ) -> Result<VariableValue, EvaluationError> {
         match op {
-            UnOp::Increment => self.mutate_lvalue(record, exp, |existing_value| {
+            UnOp::Increment => self.mutate_lvalue_get_old(record, exp, |existing_value| {
                 Ok(VariableValue::Numeric(existing_value.to_numeric()? + 1.))
-            }),
-            UnOp::Decrement => self.mutate_lvalue(record, exp, |existing_value| {
+            }).map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
+            UnOp::Decrement => self.mutate_lvalue_get_old(record, exp, |existing_value| {
                 Ok(VariableValue::Numeric(existing_value.to_numeric()? - 1.))
-            }),
+            }).map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
             UnOp::FieldReference => {
                 let index = self.resolve_to_field_index(record, exp)?;
                 Ok(record.get_field(index))
@@ -133,11 +157,11 @@ impl ExecutionEngine {
             BinOp::Mod => self.evaluate_binary_numeric_op(record, left, right, |a, b| a % b),
             BinOp::Assign => {
                 let new_value = self.evaluate_expression(record, right)?;
-                self.mutate_lvalue(record, left, |_| Ok(new_value))
+                self.mutate_lvalue_get_new(record, left, |_| Ok(new_value))
             }
             BinOp::AddAssign => {
                 let new_value = self.evaluate_expression(record, right)?;
-                self.mutate_lvalue(record, left, |v| {
+                self.mutate_lvalue_get_new(record, left, |v| {
                     Ok(VariableValue::Numeric(
                         v.to_numeric()? + new_value.to_numeric()?,
                     ))
@@ -145,7 +169,7 @@ impl ExecutionEngine {
             }
             BinOp::SubtractAssign => {
                 let new_value = self.evaluate_expression(record, right)?;
-                self.mutate_lvalue(record, left, |v| {
+                self.mutate_lvalue_get_new(record, left, |v| {
                     Ok(VariableValue::Numeric(
                         v.to_numeric()? - new_value.to_numeric()?,
                     ))
@@ -346,7 +370,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::Numeric(4.));
+        assert_eq!(value, VariableValue::Numeric(5.));
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(4.)
@@ -378,7 +402,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::Numeric(3.));
+        assert_eq!(value, VariableValue::Numeric(4.));
         assert_eq!(
             record.get_field(2),
             VariableValue::NumericString(3., String::from("3"))
@@ -432,7 +456,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::Numeric(6.));
+        assert_eq!(value, VariableValue::Numeric(5.));
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(6.)
@@ -454,7 +478,7 @@ mod tests {
             ),
         )?;
 
-        assert_eq!(value, VariableValue::Numeric(1.));
+        assert_eq!(value, VariableValue::Numeric(0.));
         assert_eq!(
             engine.get_variable("myvar").unwrap(),
             &VariableValue::Numeric(1.)
