@@ -15,7 +15,7 @@ const INPUT_RECORD_SEPARATOR_NAME: &str = "RS";
 const OUTPUT_RECORD_SEPARATOR_NAME: &str = "ORS";
 
 #[derive(Debug, PartialEq)]
-pub enum ExecutionError {
+pub enum EvaluationError {
     NoSuchVariable(String),
     InvalidNumericLiteral(String),
     NonVariableAsLvalue(Expression),
@@ -34,20 +34,20 @@ pub enum VariableValue {
 }
 
 impl VariableValue {
-    pub fn to_numeric(&self) -> Result<f64, ExecutionError> {
+    pub fn to_numeric(&self) -> Result<f64, EvaluationError> {
         // TODO: officially, any numeric prefix should be allowable, not just the whole string
         match self {
             VariableValue::String(string) => string
                 .parse()
-                .map_err(|_| ExecutionError::InvalidNumericLiteral(string.clone())),
+                .map_err(|_| EvaluationError::InvalidNumericLiteral(string.clone())),
             VariableValue::NumericString(string) => string
                 .parse()
-                .map_err(|_| ExecutionError::InvalidNumericLiteral(string.clone())),
+                .map_err(|_| EvaluationError::InvalidNumericLiteral(string.clone())),
             VariableValue::Numeric(val) => Ok(*val),
         }
     }
 
-    pub fn to_string(&self) -> Result<String, ExecutionError> {
+    pub fn to_string(&self) -> Result<String, EvaluationError> {
         match self {
             VariableValue::String(string) => Ok(string.clone()),
             VariableValue::NumericString(string) => Ok(string.clone()),
@@ -63,10 +63,10 @@ pub struct Closure {
 }
 
 impl Closure {
-    pub fn get_variable(&self, name: &str) -> Result<&VariableValue, ExecutionError> {
+    pub fn get_variable(&self, name: &str) -> Result<&VariableValue, EvaluationError> {
         self.variables
             .get(name)
-            .ok_or(ExecutionError::NoSuchVariable(String::from(name)))
+            .ok_or(EvaluationError::NoSuchVariable(String::from(name)))
     }
 
     pub fn set_variable(&mut self, name: &str, value: VariableValue) {
@@ -87,20 +87,20 @@ impl Default for Closure {
     }
 }
 
-pub struct ProgramExecutor {
+pub struct ProgramEvaluator {
     program: Ast,
     engine: RefCell<ExecutionEngine>,
 }
 
-impl ProgramExecutor {
-    pub fn new(program: Ast, env: Rc<dyn Environment>) -> ProgramExecutor {
-        ProgramExecutor {
+impl ProgramEvaluator {
+    pub fn new(program: Ast, env: Rc<dyn Environment>) -> ProgramEvaluator {
+        ProgramEvaluator {
             program,
             engine: RefCell::new(ExecutionEngine::new(env)),
         }
     }
 
-    pub fn begin(&self) -> Result<(), ExecutionError> {
+    pub fn begin(&self) -> Result<(), EvaluationError> {
         let record = Record::default();
         for rule in self
             .program
@@ -114,7 +114,7 @@ impl ProgramExecutor {
         Ok(())
     }
 
-    fn execute_action(&self, action: &Action, record: &Record) -> Result<(), ExecutionError> {
+    fn execute_action(&self, action: &Action, record: &Record) -> Result<(), EvaluationError> {
         match action {
             Action::Empty => self
                 .engine
@@ -131,19 +131,19 @@ impl ProgramExecutor {
         self.engine.borrow_mut().set_variable(name, value);
     }
 
-    pub fn get_variable(&mut self, name: &str) -> Result<VariableValue, ExecutionError> {
+    pub fn get_variable(&mut self, name: &str) -> Result<VariableValue, EvaluationError> {
         Ok(self.engine.borrow_mut().get_variable(name)?.clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{test_utils::TestEnvironment, ExecutionError, ProgramExecutor, VariableValue};
+    use super::{test_utils::TestEnvironment, EvaluationError, ProgramEvaluator, VariableValue};
     use crate::parser::ast::{Action, Ast, Pattern, Rule};
     use std::rc::Rc;
 
     #[test]
-    fn test_begin_empty_action() -> Result<(), ExecutionError> {
+    fn test_begin_empty_action() -> Result<(), EvaluationError> {
         let program = Ast {
             rules: vec![Rule {
                 pattern: Pattern::Begin,
@@ -152,23 +152,23 @@ mod tests {
         };
 
         let env = Rc::new(TestEnvironment::default());
-        let executor = ProgramExecutor::new(program, env.clone());
-        executor.begin()?;
+        let evaluator = ProgramEvaluator::new(program, env.clone());
+        evaluator.begin()?;
 
         assert_eq!(env.get_printed_lines(), vec![String::from("\n")]);
         Ok(())
     }
 
     #[test]
-    fn test_get_set_variable() -> Result<(), ExecutionError> {
+    fn test_get_set_variable() -> Result<(), EvaluationError> {
         let program = Ast { rules: vec![] };
 
         let env = Rc::new(TestEnvironment::default());
-        let mut executor = ProgramExecutor::new(program, env.clone());
+        let mut evaluator = ProgramEvaluator::new(program, env.clone());
 
-        executor.set_variable("myvariable", VariableValue::String(String::from("foo")));
+        evaluator.set_variable("myvariable", VariableValue::String(String::from("foo")));
         assert_eq!(
-            executor.get_variable("myvariable")?,
+            evaluator.get_variable("myvariable")?,
             VariableValue::String(String::from("foo"))
         );
 
@@ -180,11 +180,13 @@ mod tests {
         let program = Ast { rules: vec![] };
 
         let env = Rc::new(TestEnvironment::default());
-        let mut executor = ProgramExecutor::new(program, env.clone());
+        let mut evaluator = ProgramEvaluator::new(program, env.clone());
 
         assert_eq!(
-            executor.get_variable("i_dont_exist"),
-            Err(ExecutionError::NoSuchVariable(String::from("i_dont_exist")))
+            evaluator.get_variable("i_dont_exist"),
+            Err(EvaluationError::NoSuchVariable(String::from(
+                "i_dont_exist"
+            )))
         );
     }
 }

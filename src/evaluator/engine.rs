@@ -1,5 +1,5 @@
 use super::{
-    input::Record, Closure, Environment, ExecutionError, VariableValue,
+    input::Record, Closure, Environment, EvaluationError, VariableValue,
     OUTPUT_FIELD_SEPARATOR_NAME, OUTPUT_RECORD_SEPARATOR_NAME,
 };
 use crate::parser::ast::{BuiltinCommand, Expression, Statement, UnOp};
@@ -35,7 +35,7 @@ impl ExecutionEngine {
         self.closure.set_variable(name, value);
     }
 
-    pub fn get_variable(&mut self, name: &str) -> Result<&VariableValue, ExecutionError> {
+    pub fn get_variable(&mut self, name: &str) -> Result<&VariableValue, EvaluationError> {
         self.closure.get_variable(name)
     }
 
@@ -44,7 +44,7 @@ impl ExecutionEngine {
         record: &Record,
         op: &UnOp,
         exp: &Expression,
-    ) -> Result<VariableValue, ExecutionError> {
+    ) -> Result<VariableValue, EvaluationError> {
         match op {
             UnOp::Decrement => {
                 // TODO: arbitrary lvalues
@@ -54,7 +54,7 @@ impl ExecutionEngine {
                     self.closure.set_variable(name, new_value.clone());
                     Ok(new_value)
                 } else {
-                    Err(ExecutionError::NonVariableAsLvalue(exp.clone()))
+                    Err(EvaluationError::NonVariableAsLvalue(exp.clone()))
                 }
             }
             UnOp::FieldReference => {
@@ -62,7 +62,7 @@ impl ExecutionEngine {
                 if (value as usize) as f64 == value {
                     Ok(record.get_field(value as usize))
                 } else {
-                    Err(ExecutionError::InvalidFieldReference(value))
+                    Err(EvaluationError::InvalidFieldReference(value))
                 }
             }
             _ => todo!(),
@@ -73,7 +73,7 @@ impl ExecutionEngine {
         &mut self,
         record: &Record,
         expression: &Expression,
-    ) -> Result<VariableValue, ExecutionError> {
+    ) -> Result<VariableValue, EvaluationError> {
         match expression {
             Expression::NumericLiteral(num) => Ok(VariableValue::Numeric(*num)),
             Expression::UnaryOperation(op, exp) => self.evaluate_unary_operation(record, op, exp),
@@ -85,7 +85,7 @@ impl ExecutionEngine {
         &mut self,
         record: &Record,
         statement: &Statement,
-    ) -> Result<(), ExecutionError> {
+    ) -> Result<(), EvaluationError> {
         match statement {
             Statement::Command(BuiltinCommand::Print, args) if args.len() == 0 => {
                 self.execute_statement(record, &NO_ARGS_PRINT_SUBSTITUTION.clone())?
@@ -121,7 +121,7 @@ impl ExecutionEngine {
         &mut self,
         record: &Record,
         statements: &[Statement],
-    ) -> Result<(), ExecutionError> {
+    ) -> Result<(), EvaluationError> {
         for statement in statements {
             self.execute_statement(record, statement)?;
         }
@@ -134,13 +134,13 @@ impl ExecutionEngine {
 mod tests {
     use super::ExecutionEngine;
     use crate::{
-        executor::{input::Record, test_utils::TestEnvironment, ExecutionError, VariableValue},
+        evaluator::{input::Record, test_utils::TestEnvironment, EvaluationError, VariableValue},
         parser::ast::{BuiltinCommand, Expression, Statement, UnOp},
     };
     use std::rc::Rc;
 
     #[test]
-    fn test_default_print_command() -> Result<(), ExecutionError> {
+    fn test_default_print_command() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_reference_basic() -> Result<(), ExecutionError> {
+    fn test_field_reference_basic() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_field_reference_nonexistent() -> Result<(), ExecutionError> {
+    fn test_field_reference_nonexistent() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 
@@ -202,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decrement() -> Result<(), ExecutionError> {
+    fn test_decrement() -> Result<(), EvaluationError> {
         let env = Rc::new(TestEnvironment::default());
         let mut engine = ExecutionEngine::new(env.clone());
 

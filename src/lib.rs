@@ -4,6 +4,6 @@ pub mod test_utils;
 #[macro_use]
 pub mod global_utils;
 
-pub mod executor;
+pub mod evaluator;
 pub mod lexer;
 pub mod parser;
