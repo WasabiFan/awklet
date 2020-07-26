@@ -86,6 +86,9 @@ impl ExecutionEngine {
         exp: &Expression,
     ) -> Result<VariableValue, EvaluationError> {
         match op {
+            UnOp::Increment => self.mutate_lvalue(record, exp, |existing_value| {
+                Ok(VariableValue::Numeric(existing_value.to_numeric()? + 1.))
+            }),
             UnOp::Decrement => self.mutate_lvalue(record, exp, |existing_value| {
                 Ok(VariableValue::Numeric(existing_value.to_numeric()? - 1.))
             }),
@@ -93,7 +96,9 @@ impl ExecutionEngine {
                 let index = self.resolve_to_field_index(record, exp)?;
                 Ok(record.get_field(index))
             }
-            _ => todo!(),
+            UnOp::Negation => self.mutate_lvalue(record, exp, |existing_value| {
+                Ok(VariableValue::Numeric(-existing_value.to_numeric()?))
+            }),
         }
     }
 
@@ -350,5 +355,45 @@ mod tests {
         );
 
         assert_matches!(result, Err(EvaluationError::InvalidNumericLiteral(_)));
+    }
+
+    #[test]
+    fn increment() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        engine.set_variable("myvar", VariableValue::Numeric(5.));
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::UnaryOperation(
+                UnOp::Increment,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(6.));
+        assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(6.));
+        Ok(())
+    }
+
+    #[test]
+    fn negation() -> Result<(), EvaluationError> {
+        let env = Rc::new(TestEnvironment::default());
+        let mut engine = ExecutionEngine::new(env.clone());
+
+        let mut record = Record::default();
+        engine.set_variable("myvar", VariableValue::Numeric(5.));
+        let value = engine.evaluate_expression(
+            &mut record,
+            &Expression::UnaryOperation(
+                UnOp::Negation,
+                Box::new(Expression::VariableValue(String::from("myvar"))),
+            ),
+        )?;
+
+        assert_eq!(value, VariableValue::Numeric(-5.));
+        assert_eq!(engine.get_variable("myvar")?, &VariableValue::Numeric(-5.));
+        Ok(())
     }
 }
