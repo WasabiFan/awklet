@@ -121,7 +121,6 @@ fn compare_less_equal_given_greater_numeric() -> Result<(), EvaluationError> {
     Ok(())
 }
 
-
 #[test]
 fn compare_equal_given_less_numeric() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
@@ -178,7 +177,6 @@ fn compare_equal_given_greater_numeric() -> Result<(), EvaluationError> {
     assert_eq!(value, VariableValue::Numeric(0.));
     Ok(())
 }
-
 
 #[test]
 fn compare_not_equal_given_less_numeric() -> Result<(), EvaluationError> {
@@ -237,7 +235,6 @@ fn compare_not_equal_given_greater_numeric() -> Result<(), EvaluationError> {
     Ok(())
 }
 
-
 #[test]
 fn compare_greater_equal_given_less_numeric() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
@@ -294,7 +291,6 @@ fn compare_greater_equal_given_greater_numeric() -> Result<(), EvaluationError> 
     assert_eq!(value, VariableValue::Numeric(1.));
     Ok(())
 }
-
 
 #[test]
 fn compare_greater_given_less_numeric() -> Result<(), EvaluationError> {
