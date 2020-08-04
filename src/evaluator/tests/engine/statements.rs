@@ -60,6 +60,29 @@ fn multi_print() -> Result<(), EvaluationError> {
 }
 
 #[test]
+fn print_with_ors() -> Result<(), EvaluationError> {
+    let env = Rc::new(TestEnvironment::default());
+    let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_variable("ORS", VariableValue::String(String::from(";")));
+
+    let mut record = Record::new(String::from("foo bar"), vec![]);
+    engine.execute_statement(
+        &mut record,
+        &Statement::Command(BuiltinCommand::Print, vec![]),
+    )?;
+    engine.execute_statement(
+        &mut record,
+        &Statement::Command(BuiltinCommand::Print, vec![]),
+    )?;
+
+    assert_eq!(
+        env.get_printed_lines(),
+        vec![String::from("foo bar;"), String::from("foo bar;")]
+    );
+    Ok(())
+}
+
+#[test]
 fn expression_as_statement() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());

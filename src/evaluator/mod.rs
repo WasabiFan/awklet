@@ -1,7 +1,7 @@
 use crate::parser::ast::{Action, Ast, BuiltinCommand, Expression, Pattern, Statement};
 use engine::ExecutionEngine;
 use input::Record;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, rc::Rc};
 
 mod engine;
 mod input;
@@ -47,6 +47,14 @@ impl VariableValue {
             VariableValue::String(string) => string.clone(),
             VariableValue::NumericString(_, string) => string.clone(),
             VariableValue::Numeric(val) => val.to_string(),
+        }
+    }
+
+    pub fn as_boolean(&self) -> bool {
+        match self {
+            VariableValue::String(string) => !string.is_empty(),
+            VariableValue::NumericString(val, _) => val.partial_cmp(&0.) != Some(Ordering::Equal),
+            VariableValue::Numeric(val) => val.partial_cmp(&0.) != Some(Ordering::Equal),
         }
     }
 }
@@ -109,6 +117,35 @@ impl ProgramEvaluator {
             .filter(|r| r.pattern == Pattern::Begin)
         {
             self.execute_action(&rule.action, &mut record)?;
+        }
+
+        Ok(())
+    }
+
+    fn pattern_matches_record(
+        &self,
+        record: &mut Record,
+        pattern: &Pattern,
+    ) -> Result<bool, EvaluationError> {
+        match pattern {
+            Pattern::Empty => Ok(true),
+            Pattern::SingleCondition(exp) => Ok(self
+                .engine
+                .borrow_mut()
+                .evaluate_expression(record, &exp)?
+                .as_boolean()),
+            Pattern::Range(_, _) => todo!(),
+            Pattern::Begin => Ok(false),
+            Pattern::End => Ok(false),
+        }
+    }
+
+    pub fn process_record(&self, mut record: Record) -> Result<(), EvaluationError> {
+        for rule in self.program.rules.iter() {
+            let should_execute = self.pattern_matches_record(&mut record, &rule.pattern)?;
+            if should_execute {
+                self.execute_action(&rule.action, &mut record)?;
+            }
         }
 
         Ok(())
