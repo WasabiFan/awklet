@@ -12,14 +12,7 @@ fn field_reference_basic() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(
-        String::from("foo bar baz"),
-        vec![
-            String::from("foo"),
-            String::from("bar"),
-            String::from("baz"),
-        ],
-    );
+    let mut record = spaced_record!["foo", "bar", "baz"];
     let value = engine.evaluate_expression(
         &mut record,
         &Expression::UnaryOperation(
@@ -37,14 +30,7 @@ fn field_reference_nonexistent() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(
-        String::from("foo bar baz"),
-        vec![
-            String::from("foo"),
-            String::from("bar"),
-            String::from("baz"),
-        ],
-    );
+    let mut record = spaced_record!["foo", "bar", "baz"];
     let value = engine.evaluate_expression(
         &mut record,
         &Expression::UnaryOperation(

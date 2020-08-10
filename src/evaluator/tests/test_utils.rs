@@ -17,3 +17,13 @@ impl Environment for TestEnvironment {
         self.printed_lines.borrow_mut().push(String::from(string));
     }
 }
+
+macro_rules! spaced_record {
+    ($($x:expr),+ $(,)?) => ({
+        let strings = vec![$(String::from($x)),+];
+        Record::new(
+            strings.join(" "),
+            strings
+        )
+    });
+}

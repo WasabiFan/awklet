@@ -35,14 +35,7 @@ fn decrement_field() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(
-        String::from("some 4 record"),
-        vec![
-            String::from("some"),
-            String::from("4"),
-            String::from("record"),
-        ],
-    );
+    let mut record = spaced_record!["some", "4", "record"];
     let value = engine.evaluate_expression(
         &mut record,
         &Expression::UnaryOperation(
@@ -71,14 +64,7 @@ fn decrement_string() {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(
-        String::from("some 4 record"),
-        vec![
-            String::from("some"),
-            String::from("4"),
-            String::from("record"),
-        ],
-    );
+    let mut record = spaced_record!["some", "4", "record"];
     let result = engine.evaluate_expression(
         &mut record,
         &Expression::UnaryOperation(

@@ -42,10 +42,7 @@ fn parse_space_trimming() -> Result<(), EvaluationError> {
 
 #[test]
 fn get_full_record() {
-    let record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let record = spaced_record!["foo", "bar"];
 
     let field_val = record.get_field(0);
     assert_eq!(field_val, VariableValue::String(String::from("foo bar")));
@@ -53,10 +50,7 @@ fn get_full_record() {
 
 #[test]
 fn get_intermediate_fields() {
-    let record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let record = spaced_record!["foo", "bar"];
 
     let field_val_1 = record.get_field(1);
     let field_val_2 = record.get_field(2);
@@ -66,14 +60,7 @@ fn get_intermediate_fields() {
 
 #[test]
 fn get_numeric_fields() {
-    let record = Record::new(
-        String::from("foo 314e-2 bar"),
-        vec![
-            String::from("foo"),
-            String::from("314e-2"),
-            String::from("bar"),
-        ],
-    );
+    let record = spaced_record!["foo", "314e-2", "bar"];
 
     let field_val = record.get_field(2);
     assert_eq!(
@@ -84,10 +71,7 @@ fn get_numeric_fields() {
 
 #[test]
 fn get_nonexistent_field() {
-    let record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let record = spaced_record!["foo", "bar"];
 
     let field_val = record.get_field(3);
     assert_eq!(field_val, VariableValue::String(String::from("")));
@@ -96,19 +80,13 @@ fn get_nonexistent_field() {
 #[test]
 fn update_whole_record() -> Result<(), EvaluationError> {
     let closure = Closure::default();
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 0, VariableValue::String(String::from("abc 123")))?;
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("abc 123"),
-            vec![String::from("abc"), String::from("123"),]
-        )
+        spaced_record!["abc", "123"]
     );
 
     Ok(())
@@ -117,19 +95,13 @@ fn update_whole_record() -> Result<(), EvaluationError> {
 #[test]
 fn update_single_field() -> Result<(), EvaluationError> {
     let closure = Closure::default();
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 1, VariableValue::String(String::from("abc")))?;
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("abc bar"),
-            vec![String::from("abc"), String::from("bar"),]
-        )
+        spaced_record!["abc", "bar"]
     );
 
     Ok(())
@@ -138,23 +110,13 @@ fn update_single_field() -> Result<(), EvaluationError> {
 #[test]
 fn update_create_next_field() -> Result<(), EvaluationError> {
     let closure = Closure::default();
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 3, VariableValue::String(String::from("abc")))?;
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("foo bar abc"),
-            vec![
-                String::from("foo"),
-                String::from("bar"),
-                String::from("abc"),
-            ]
-        )
+        spaced_record!["foo", "bar", "abc"]
     );
 
     Ok(())
@@ -163,25 +125,13 @@ fn update_create_next_field() -> Result<(), EvaluationError> {
 #[test]
 fn update_create_gap_field() -> Result<(), EvaluationError> {
     let closure = Closure::default();
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 5, VariableValue::String(String::from("abc")))?;
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("foo bar   abc"),
-            vec![
-                String::from("foo"),
-                String::from("bar"),
-                String::from(""),
-                String::from(""),
-                String::from("abc"),
-            ]
-        )
+        spaced_record!["foo", "bar", "", "", "abc"]
     );
 
     Ok(())
@@ -191,10 +141,7 @@ fn update_create_gap_field() -> Result<(), EvaluationError> {
 fn ofs_without_write() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
     closure.set_variable("OFS", VariableValue::String(String::from(",")));
-    let record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let record = spaced_record!["foo", "bar"];
 
     assert_eq!(
         record.get_field(1),
@@ -203,10 +150,7 @@ fn ofs_without_write() -> Result<(), EvaluationError> {
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("foo bar"),
-            vec![String::from("foo"), String::from("bar"),]
-        )
+        spaced_record!["foo", "bar"]
     );
 
     Ok(())
@@ -216,19 +160,13 @@ fn ofs_without_write() -> Result<(), EvaluationError> {
 fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
     closure.set_variable("OFS", VariableValue::String(String::from(",")));
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 0, VariableValue::String(String::from("abc 123")))?;
 
     assert_eq!(
         record,
-        Record::new(
-            String::from("abc 123"),
-            vec![String::from("abc"), String::from("123"),]
-        )
+        spaced_record!["abc", "123"]
     );
 
     Ok(())
@@ -238,10 +176,7 @@ fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
 fn update_single_field_custom_ofs() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
     closure.set_variable("OFS", VariableValue::String(String::from(",")));
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
 
     record.set_field(&closure, 1, VariableValue::String(String::from("abc")))?;
 

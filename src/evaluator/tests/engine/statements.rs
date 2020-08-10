@@ -12,7 +12,7 @@ fn default_print_command() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(String::from("foo bar"), vec![]);
+    let mut record = spaced_record!["foo", "bar"];
     engine.execute_statement(
         &mut record,
         &Statement::Command(BuiltinCommand::Print, vec![]),
@@ -27,10 +27,7 @@ fn multi_print() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(
-        String::from("foo bar"),
-        vec![String::from("foo"), String::from("bar")],
-    );
+    let mut record = spaced_record!["foo", "bar"];
     engine.execute_statement(
         &mut record,
         &Statement::Command(
@@ -65,7 +62,7 @@ fn print_with_ors() -> Result<(), EvaluationError> {
     let mut engine = ExecutionEngine::new(env.clone());
     engine.set_variable("ORS", VariableValue::String(String::from(";")));
 
-    let mut record = Record::new(String::from("foo bar"), vec![]);
+    let mut record = spaced_record!["foo", "bar"];
     engine.execute_statement(
         &mut record,
         &Statement::Command(BuiltinCommand::Print, vec![]),
@@ -87,7 +84,7 @@ fn expression_as_statement() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::new(String::from("foo bar"), vec![]);
+    let mut record = spaced_record!["foo", "bar"];
     engine.execute_statement(
         &mut record,
         &Statement::Expression(Expression::BinaryOperation(

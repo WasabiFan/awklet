@@ -27,11 +27,7 @@ fn simple_expression_matches() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let evaluator = ProgramEvaluator::new(program, env.clone());
 
-    let record = Record::new(
-        String::from("foo 1 bar"),
-        vec![String::from("foo"), String::from("1"), String::from("bar")],
-    );
-    evaluator.process_record(record)?;
+    evaluator.process_record(spaced_record!["foo", "1", "bar"])?;
 
     assert_eq!(env.get_printed_lines(), vec![String::from("foo 1 bar\n")]);
     Ok(())
@@ -58,11 +54,7 @@ fn simple_expression_not_matches() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let evaluator = ProgramEvaluator::new(program, env.clone());
 
-    let record = Record::new(
-        String::from("foo 0 bar"),
-        vec![String::from("foo"), String::from("0"), String::from("bar")],
-    );
-    evaluator.process_record(record)?;
+    evaluator.process_record(spaced_record!["foo", "0", "bar"])?;
 
     assert_eq!(env.get_printed_lines(), Vec::<String>::new());
     Ok(())
@@ -83,17 +75,8 @@ fn record_count_basic_increment() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let evaluator = ProgramEvaluator::new(program, env.clone());
 
-    let record1 = Record::new(
-        String::from("foo"),
-        vec![String::from("foo")],
-    );
-    evaluator.process_record(record1)?;
-
-    let record2 = Record::new(
-        String::from("bar"),
-        vec![String::from("bar")],
-    );
-    evaluator.process_record(record2)?;
+    evaluator.process_record(spaced_record!["foo"])?;
+    evaluator.process_record(spaced_record!["bar"])?;
 
     assert_eq!(env.get_printed_lines(), vec![
         String::from("1\n"),
@@ -124,19 +107,8 @@ fn record_count_begin_end() -> Result<(), EvaluationError> {
     let evaluator = ProgramEvaluator::new(program, env.clone());
 
     evaluator.begin()?;
-
-    let record1 = Record::new(
-        String::from("foo"),
-        vec![String::from("foo")],
-    );
-    evaluator.process_record(record1)?;
-
-    let record2 = Record::new(
-        String::from("bar"),
-        vec![String::from("bar")],
-    );
-    evaluator.process_record(record2)?;
-
+    evaluator.process_record(spaced_record!["foo"])?;
+    evaluator.process_record(spaced_record!["bar"])?;
     evaluator.end()?;
 
     assert_eq!(env.get_printed_lines(), vec![
@@ -162,13 +134,7 @@ fn record_count_assign() -> Result<(), EvaluationError> {
     let evaluator = ProgramEvaluator::new(program, env.clone());
 
     evaluator.set_variable("NR", crate::evaluator::VariableValue::Numeric(5.));
-
-    let record1 = Record::new(
-        String::from("foo"),
-        vec![String::from("foo")],
-    );
-    evaluator.process_record(record1)?;
-
+    evaluator.process_record(spaced_record!["foo"])?;
     evaluator.end()?;
 
     assert_eq!(env.get_printed_lines(), vec![
