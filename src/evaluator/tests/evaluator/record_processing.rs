@@ -1,7 +1,5 @@
 use crate::{
-    evaluator::{
-        input::Record, tests::test_utils::TestEnvironment, EvaluationError, ProgramEvaluator,
-    },
+    evaluator::{tests::test_utils::TestEnvironment, EvaluationError, ProgramEvaluator},
     parser::ast::{Action, Ast, BuiltinCommand, Expression, Pattern, Rule, Statement, UnOp},
 };
 use std::rc::Rc;

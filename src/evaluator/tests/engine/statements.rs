@@ -1,7 +1,6 @@
 use crate::{
     evaluator::{
-        engine::ExecutionEngine, input::Record, tests::test_utils::TestEnvironment,
-        EvaluationError, VariableValue,
+        engine::ExecutionEngine, tests::test_utils::TestEnvironment, EvaluationError, VariableValue,
     },
     parser::ast::{BinOp, BuiltinCommand, Expression, Statement, UnOp},
 };
@@ -11,12 +10,9 @@ use std::rc::Rc;
 fn default_print_command() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["foo", "bar"]);
 
-    let mut record = spaced_record!["foo", "bar"];
-    engine.execute_statement(
-        &mut record,
-        &Statement::Command(BuiltinCommand::Print, vec![]),
-    )?;
+    engine.execute_statement(&Statement::Command(BuiltinCommand::Print, vec![]))?;
 
     assert_eq!(env.get_printed_lines(), vec![String::from("foo bar\n")]);
     Ok(())
@@ -26,28 +22,25 @@ fn default_print_command() -> Result<(), EvaluationError> {
 fn multi_print() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["foo", "bar"]);
 
-    let mut record = spaced_record!["foo", "bar"];
-    engine.execute_statement(
-        &mut record,
-        &Statement::Command(
-            BuiltinCommand::Print,
-            vec![
-                Expression::UnaryOperation(
-                    UnOp::FieldReference,
-                    Box::new(Expression::NumericLiteral(0.)),
-                ),
-                Expression::UnaryOperation(
-                    UnOp::FieldReference,
-                    Box::new(Expression::NumericLiteral(1.)),
-                ),
-                Expression::UnaryOperation(
-                    UnOp::FieldReference,
-                    Box::new(Expression::NumericLiteral(2.)),
-                ),
-            ],
-        ),
-    )?;
+    engine.execute_statement(&Statement::Command(
+        BuiltinCommand::Print,
+        vec![
+            Expression::UnaryOperation(
+                UnOp::FieldReference,
+                Box::new(Expression::NumericLiteral(0.)),
+            ),
+            Expression::UnaryOperation(
+                UnOp::FieldReference,
+                Box::new(Expression::NumericLiteral(1.)),
+            ),
+            Expression::UnaryOperation(
+                UnOp::FieldReference,
+                Box::new(Expression::NumericLiteral(2.)),
+            ),
+        ],
+    ))?;
 
     assert_eq!(
         env.get_printed_lines(),
@@ -61,16 +54,10 @@ fn print_with_ors() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
     engine.set_variable("ORS", VariableValue::String(String::from(";")));
+    engine.set_record(spaced_record!["foo", "bar"]);
 
-    let mut record = spaced_record!["foo", "bar"];
-    engine.execute_statement(
-        &mut record,
-        &Statement::Command(BuiltinCommand::Print, vec![]),
-    )?;
-    engine.execute_statement(
-        &mut record,
-        &Statement::Command(BuiltinCommand::Print, vec![]),
-    )?;
+    engine.execute_statement(&Statement::Command(BuiltinCommand::Print, vec![]))?;
+    engine.execute_statement(&Statement::Command(BuiltinCommand::Print, vec![]))?;
 
     assert_eq!(
         env.get_printed_lines(),
@@ -83,16 +70,13 @@ fn print_with_ors() -> Result<(), EvaluationError> {
 fn expression_as_statement() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["foo", "bar"]);
 
-    let mut record = spaced_record!["foo", "bar"];
-    engine.execute_statement(
-        &mut record,
-        &Statement::Expression(Expression::BinaryOperation(
-            BinOp::Assign,
-            Box::new(Expression::VariableValue(String::from("myvar"))),
-            Box::new(Expression::NumericLiteral(3.)),
-        )),
-    )?;
+    engine.execute_statement(&Statement::Expression(Expression::BinaryOperation(
+        BinOp::Assign,
+        Box::new(Expression::VariableValue(String::from("myvar"))),
+        Box::new(Expression::NumericLiteral(3.)),
+    )))?;
 
     assert_eq!(
         engine.get_variable("myvar"),

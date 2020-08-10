@@ -21,7 +21,7 @@ impl Environment for TestEnvironment {
 macro_rules! spaced_record {
     ($($x:expr),+ $(,)?) => ({
         let strings = vec![$(String::from($x)),+];
-        Record::new(
+        crate::evaluator::record::Record::new(
             strings.join(" "),
             strings
         )

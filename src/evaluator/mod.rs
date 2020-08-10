@@ -1,16 +1,12 @@
 use crate::parser::ast::{Action, Ast, BuiltinCommand, Expression, Pattern, Statement};
+use closure::NUMBER_RECORDS_NAME;
 use engine::ExecutionEngine;
-use input::Record;
-use std::{cell::RefCell, cmp::Ordering, collections::HashMap, rc::Rc};
+use record::Record;
+use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
+mod closure;
 mod engine;
-mod input;
-
-const INPUT_FIELD_SEPARATOR_NAME: &str = "FS";
-const OUTPUT_FIELD_SEPARATOR_NAME: &str = "OFS";
-const INPUT_RECORD_SEPARATOR_NAME: &str = "RS";
-const OUTPUT_RECORD_SEPARATOR_NAME: &str = "ORS";
-const NUMBER_RECORDS_NAME: &str = "NR";
+mod record;
 
 #[derive(Debug, PartialEq)]
 pub enum EvaluationError {
@@ -60,42 +56,6 @@ impl VariableValue {
     }
 }
 
-#[derive(Debug)]
-pub struct Closure {
-    variables: HashMap<String, VariableValue>,
-}
-
-impl Closure {
-    pub fn get_variable_or_default(&self, name: &str) -> VariableValue {
-        self.get_variable(name)
-            .map_or(VariableValue::NumericString(0., String::from("")), |v| {
-                v.clone()
-            })
-    }
-
-    pub fn get_variable(&self, name: &str) -> Option<&VariableValue> {
-        self.variables.get(name)
-    }
-
-    pub fn set_variable(&mut self, name: &str, value: VariableValue) {
-        self.variables.insert(String::from(name), value);
-    }
-}
-
-impl Default for Closure {
-    fn default() -> Self {
-        Closure {
-            variables: hashmap![
-                String::from(INPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
-                String::from(OUTPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
-                String::from(INPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
-                String::from(OUTPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
-                String::from(NUMBER_RECORDS_NAME) => VariableValue::Numeric(0.),
-            ],
-        }
-    }
-}
-
 pub struct ProgramEvaluator {
     program: Ast,
     engine: RefCell<ExecutionEngine>,
@@ -110,9 +70,8 @@ impl ProgramEvaluator {
     }
 
     fn run_all_with_static_pattern(&self, pat: Pattern) -> Result<(), EvaluationError> {
-        let mut record = Record::default();
         for rule in self.program.rules.iter().filter(|r| r.pattern == pat) {
-            self.execute_action(&rule.action, &mut record)?;
+            self.execute_action(&rule.action)?;
         }
 
         Ok(())
@@ -126,17 +85,13 @@ impl ProgramEvaluator {
         self.run_all_with_static_pattern(Pattern::End)
     }
 
-    fn pattern_matches_record(
-        &self,
-        record: &mut Record,
-        pattern: &Pattern,
-    ) -> Result<bool, EvaluationError> {
+    fn pattern_matches_record(&self, pattern: &Pattern) -> Result<bool, EvaluationError> {
         match pattern {
             Pattern::Empty => Ok(true),
             Pattern::SingleCondition(exp) => Ok(self
                 .engine
                 .borrow_mut()
-                .evaluate_expression(record, &exp)?
+                .evaluate_expression(&exp)?
                 .as_boolean()),
             Pattern::Range(_, _) => todo!(),
             Pattern::Begin => Ok(false),
@@ -158,29 +113,27 @@ impl ProgramEvaluator {
         Ok(())
     }
 
-    pub fn process_record(&self, mut record: Record) -> Result<(), EvaluationError> {
+    pub fn process_record(&self, record: Record) -> Result<(), EvaluationError> {
         self.increment_num_records()?;
+        self.engine.borrow_mut().set_record(record);
 
         for rule in self.program.rules.iter() {
-            let should_execute = self.pattern_matches_record(&mut record, &rule.pattern)?;
+            let should_execute = self.pattern_matches_record(&rule.pattern)?;
             if should_execute {
-                self.execute_action(&rule.action, &mut record)?;
+                self.execute_action(&rule.action)?;
             }
         }
 
         Ok(())
     }
 
-    fn execute_action(&self, action: &Action, record: &mut Record) -> Result<(), EvaluationError> {
+    fn execute_action(&self, action: &Action) -> Result<(), EvaluationError> {
         match action {
             Action::Empty => self
                 .engine
                 .borrow_mut()
-                .execute_statements(record, &[Statement::Command(BuiltinCommand::Print, vec![])]),
-            Action::Present(statements) => self
-                .engine
-                .borrow_mut()
-                .execute_statements(record, statements),
+                .execute_statements(&[Statement::Command(BuiltinCommand::Print, vec![])]),
+            Action::Present(statements) => self.engine.borrow_mut().execute_statements(statements),
         }
     }
 

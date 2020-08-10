@@ -1,7 +1,6 @@
 use crate::{
     evaluator::{
-        engine::ExecutionEngine, input::Record, tests::test_utils::TestEnvironment,
-        EvaluationError, VariableValue,
+        engine::ExecutionEngine, tests::test_utils::TestEnvironment, EvaluationError, VariableValue,
     },
     parser::ast::{Expression, UnOp},
 };
@@ -12,15 +11,11 @@ fn decrement() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::default();
     engine.set_variable("myvar", VariableValue::Numeric(5.));
-    let value = engine.evaluate_expression(
-        &mut record,
-        &Expression::UnaryOperation(
-            UnOp::Decrement,
-            Box::new(Expression::VariableValue(String::from("myvar"))),
-        ),
-    )?;
+    let value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::Decrement,
+        Box::new(Expression::VariableValue(String::from("myvar"))),
+    ))?;
 
     assert_eq!(value, VariableValue::Numeric(5.));
     assert_eq!(
@@ -34,26 +29,23 @@ fn decrement() -> Result<(), EvaluationError> {
 fn decrement_field() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["some", "4", "record"]);
 
-    let mut record = spaced_record!["some", "4", "record"];
-    let value = engine.evaluate_expression(
-        &mut record,
-        &Expression::UnaryOperation(
-            UnOp::Decrement,
-            Box::new(Expression::UnaryOperation(
-                UnOp::FieldReference,
-                Box::new(Expression::NumericLiteral(2.)),
-            )),
-        ),
-    )?;
+    let value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::Decrement,
+        Box::new(Expression::UnaryOperation(
+            UnOp::FieldReference,
+            Box::new(Expression::NumericLiteral(2.)),
+        )),
+    ))?;
 
     assert_eq!(value, VariableValue::Numeric(4.));
     assert_eq!(
-        record.get_field(2),
+        engine.get_record().get_field(2),
         VariableValue::NumericString(3., String::from("3"))
     );
     assert_eq!(
-        record.get_field(0),
+        engine.get_record().get_field(0),
         VariableValue::String(String::from("some 3 record"))
     );
     Ok(())
@@ -63,18 +55,15 @@ fn decrement_field() -> Result<(), EvaluationError> {
 fn decrement_string() {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["some", "4", "record"]);
 
-    let mut record = spaced_record!["some", "4", "record"];
-    let result = engine.evaluate_expression(
-        &mut record,
-        &Expression::UnaryOperation(
-            UnOp::Decrement,
-            Box::new(Expression::UnaryOperation(
-                UnOp::FieldReference,
-                Box::new(Expression::NumericLiteral(1.)),
-            )),
-        ),
-    );
+    let result = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::Decrement,
+        Box::new(Expression::UnaryOperation(
+            UnOp::FieldReference,
+            Box::new(Expression::NumericLiteral(1.)),
+        )),
+    ));
 
     assert_matches!(result, Err(EvaluationError::InvalidNumericLiteral(_)));
 }
@@ -84,15 +73,11 @@ fn increment() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::default();
     engine.set_variable("myvar", VariableValue::Numeric(5.));
-    let value = engine.evaluate_expression(
-        &mut record,
-        &Expression::UnaryOperation(
-            UnOp::Increment,
-            Box::new(Expression::VariableValue(String::from("myvar"))),
-        ),
-    )?;
+    let value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::Increment,
+        Box::new(Expression::VariableValue(String::from("myvar"))),
+    ))?;
 
     assert_eq!(value, VariableValue::Numeric(5.));
     assert_eq!(
@@ -107,14 +92,10 @@ fn increment_nonexistent() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
 
-    let mut record = Record::default();
-    let value = engine.evaluate_expression(
-        &mut record,
-        &Expression::UnaryOperation(
-            UnOp::Increment,
-            Box::new(Expression::VariableValue(String::from("myvar"))),
-        ),
-    )?;
+    let value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::Increment,
+        Box::new(Expression::VariableValue(String::from("myvar"))),
+    ))?;
 
     assert_eq!(value, VariableValue::Numeric(0.));
     assert_eq!(
