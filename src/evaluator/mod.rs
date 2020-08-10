@@ -10,6 +10,7 @@ const INPUT_FIELD_SEPARATOR_NAME: &str = "FS";
 const OUTPUT_FIELD_SEPARATOR_NAME: &str = "OFS";
 const INPUT_RECORD_SEPARATOR_NAME: &str = "RS";
 const OUTPUT_RECORD_SEPARATOR_NAME: &str = "ORS";
+const NUMBER_RECORDS_NAME: &str = "NR";
 
 #[derive(Debug, PartialEq)]
 pub enum EvaluationError {
@@ -89,7 +90,8 @@ impl Default for Closure {
                 String::from(INPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
                 String::from(OUTPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
                 String::from(INPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
-                String::from(OUTPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n"))
+                String::from(OUTPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
+                String::from(NUMBER_RECORDS_NAME) => VariableValue::Numeric(0.)
             ],
         }
     }
@@ -108,18 +110,26 @@ impl ProgramEvaluator {
         }
     }
 
-    pub fn begin(&self) -> Result<(), EvaluationError> {
+    fn run_all_with_static_pattern(&self, pat: Pattern) -> Result<(), EvaluationError> {
         let mut record = Record::default();
         for rule in self
             .program
             .rules
             .iter()
-            .filter(|r| r.pattern == Pattern::Begin)
+            .filter(|r| r.pattern == pat)
         {
             self.execute_action(&rule.action, &mut record)?;
         }
 
         Ok(())
+    }
+
+    pub fn begin(&self) -> Result<(), EvaluationError> {
+        self.run_all_with_static_pattern(Pattern::Begin)
+    }
+
+    pub fn end(&self) -> Result<(), EvaluationError> {
+        self.run_all_with_static_pattern(Pattern::End)
     }
 
     fn pattern_matches_record(
@@ -140,7 +150,16 @@ impl ProgramEvaluator {
         }
     }
 
+    fn increment_num_records(&self) -> Result<(), EvaluationError> {
+        let old_value = self.engine.borrow_mut().get_variable(NUMBER_RECORDS_NAME).unwrap_or(&VariableValue::Numeric(0.)).to_numeric()?;
+        self.engine.borrow_mut().set_variable(NUMBER_RECORDS_NAME, VariableValue::Numeric(old_value + 1.));
+
+        Ok(())
+    }
+
     pub fn process_record(&self, mut record: Record) -> Result<(), EvaluationError> {
+        self.increment_num_records()?;
+
         for rule in self.program.rules.iter() {
             let should_execute = self.pattern_matches_record(&mut record, &rule.pattern)?;
             if should_execute {
@@ -164,7 +183,7 @@ impl ProgramEvaluator {
         }
     }
 
-    pub fn set_variable(&mut self, name: &str, value: VariableValue) {
+    pub fn set_variable(&self, name: &str, value: VariableValue) {
         self.engine.borrow_mut().set_variable(name, value);
     }
 

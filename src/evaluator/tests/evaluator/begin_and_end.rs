@@ -69,3 +69,20 @@ fn begin_record_value() -> Result<(), EvaluationError> {
     assert_eq!(env.get_printed_lines(), vec![String::from(" \n")]);
     Ok(())
 }
+
+#[test]
+fn end_empty_action() -> Result<(), EvaluationError> {
+    let program = Ast {
+        rules: vec![Rule {
+            pattern: Pattern::End,
+            action: Action::Empty,
+        }],
+    };
+
+    let env = Rc::new(TestEnvironment::default());
+    let evaluator = ProgramEvaluator::new(program, env.clone());
+    evaluator.end()?;
+
+    assert_eq!(env.get_printed_lines(), vec![String::from("\n")]);
+    Ok(())
+}
