@@ -62,7 +62,6 @@ impl VariableValue {
 
 #[derive(Debug)]
 pub struct Closure {
-    // TODO: variable types
     variables: HashMap<String, VariableValue>,
 }
 
@@ -91,7 +90,7 @@ impl Default for Closure {
                 String::from(OUTPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
                 String::from(INPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
                 String::from(OUTPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
-                String::from(NUMBER_RECORDS_NAME) => VariableValue::Numeric(0.)
+                String::from(NUMBER_RECORDS_NAME) => VariableValue::Numeric(0.),
             ],
         }
     }
