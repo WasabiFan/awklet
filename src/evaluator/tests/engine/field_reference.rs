@@ -35,3 +35,18 @@ fn field_reference_nonexistent() -> Result<(), EvaluationError> {
     assert_eq!(value, VariableValue::String(String::from("")));
     Ok(())
 }
+
+#[test]
+fn field_reference_decimal() -> Result<(), EvaluationError> {
+    let env = Rc::new(TestEnvironment::default());
+    let mut engine = ExecutionEngine::new(env.clone());
+    engine.set_record(spaced_record!["foo", "bar", "baz"]);
+
+    let value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::FieldReference,
+        Box::new(Expression::NumericLiteral(2.7)),
+    ))?;
+
+    assert_eq!(value, VariableValue::String(String::from("bar")));
+    Ok(())
+}

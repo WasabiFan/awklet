@@ -52,20 +52,31 @@ fn decrement_field() -> Result<(), EvaluationError> {
 }
 
 #[test]
-fn decrement_string() {
+fn decrement_string() -> Result<(), EvaluationError> {
     let env = Rc::new(TestEnvironment::default());
     let mut engine = ExecutionEngine::new(env.clone());
     engine.set_record(spaced_record!["some", "4", "record"]);
 
-    let result = engine.evaluate_expression(&Expression::UnaryOperation(
+    let decrement_value = engine.evaluate_expression(&Expression::UnaryOperation(
         UnOp::Decrement,
         Box::new(Expression::UnaryOperation(
             UnOp::FieldReference,
             Box::new(Expression::NumericLiteral(1.)),
         )),
-    ));
+    ))?;
 
-    assert_matches!(result, Err(EvaluationError::InvalidNumericLiteral(_)));
+    let new_value = engine.evaluate_expression(&Expression::UnaryOperation(
+        UnOp::FieldReference,
+        Box::new(Expression::NumericLiteral(1.)),
+    ))?;
+
+    assert_eq!(decrement_value, VariableValue::Numeric(0.));
+    assert_eq!(
+        new_value,
+        VariableValue::NumericString(-1., String::from("-1"))
+    );
+
+    Ok(())
 }
 
 #[test]

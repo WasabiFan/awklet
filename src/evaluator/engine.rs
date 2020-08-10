@@ -102,12 +102,7 @@ impl ExecutionEngine {
         &mut self,
         expression: &Expression,
     ) -> Result<usize, EvaluationError> {
-        let value = self.evaluate_expression(expression)?.to_numeric()?;
-        if (value as usize) as f64 == value {
-            Ok(value as usize)
-        } else {
-            Err(EvaluationError::InvalidFieldReference(value))
-        }
+        Ok(self.evaluate_expression(expression)?.to_numeric() as usize)
     }
 
     fn evaluate_unary_operation(
@@ -118,20 +113,20 @@ impl ExecutionEngine {
         match op {
             UnOp::Increment => self
                 .mutate_lvalue_get_old(exp, |existing_value| {
-                    Ok(VariableValue::Numeric(existing_value.to_numeric()? + 1.))
+                    Ok(VariableValue::Numeric(existing_value.to_numeric() + 1.))
                 })
-                .map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
+                .map(|v| VariableValue::Numeric(v.to_numeric())),
             UnOp::Decrement => self
                 .mutate_lvalue_get_old(exp, |existing_value| {
-                    Ok(VariableValue::Numeric(existing_value.to_numeric()? - 1.))
+                    Ok(VariableValue::Numeric(existing_value.to_numeric() - 1.))
                 })
-                .map(|v| VariableValue::Numeric(v.to_numeric().unwrap())),
+                .map(|v| VariableValue::Numeric(v.to_numeric())),
             UnOp::FieldReference => {
                 let index = self.resolve_to_field_index(exp)?;
                 Ok(self.closure.get_field(index))
             }
             UnOp::Negation => Ok(VariableValue::Numeric(
-                -self.evaluate_expression(exp)?.to_numeric()?,
+                -self.evaluate_expression(exp)?.to_numeric(),
             )),
         }
     }
@@ -145,8 +140,8 @@ impl ExecutionEngine {
     where
         F: Fn(f64, f64) -> f64,
     {
-        let left_val = self.evaluate_expression(left)?.to_numeric()?;
-        let right_val = self.evaluate_expression(right)?.to_numeric()?;
+        let left_val = self.evaluate_expression(left)?.to_numeric();
+        let right_val = self.evaluate_expression(right)?.to_numeric();
 
         Ok(VariableValue::Numeric(operation(left_val, right_val)))
     }
@@ -168,8 +163,8 @@ impl ExecutionEngine {
             (VariableValue::String(a), b) => a.cmp(&b.to_string()),
             (a, VariableValue::String(b)) => a.to_string().cmp(&b),
             (a, b) => a
-                .to_numeric()?
-                .partial_cmp(&b.to_numeric()?)
+                .to_numeric()
+                .partial_cmp(&b.to_numeric())
                 .unwrap_or(Ordering::Equal),
         };
 
@@ -196,7 +191,7 @@ impl ExecutionEngine {
                 let new_value = self.evaluate_expression(right)?;
                 self.mutate_lvalue_get_new(left, |v| {
                     Ok(VariableValue::Numeric(
-                        v.to_numeric()? + new_value.to_numeric()?,
+                        v.to_numeric() + new_value.to_numeric(),
                     ))
                 })
             }
@@ -204,7 +199,7 @@ impl ExecutionEngine {
                 let new_value = self.evaluate_expression(right)?;
                 self.mutate_lvalue_get_new(left, |v| {
                     Ok(VariableValue::Numeric(
-                        v.to_numeric()? - new_value.to_numeric()?,
+                        v.to_numeric() - new_value.to_numeric(),
                     ))
                 })
             }

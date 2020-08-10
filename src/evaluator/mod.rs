@@ -28,14 +28,18 @@ pub enum VariableValue {
 }
 
 impl VariableValue {
-    pub fn to_numeric(&self) -> Result<f64, EvaluationError> {
-        // TODO: officially, any numeric prefix should be allowable, not just the whole string
+    fn parse_longest_prefix(value: &str) -> f64 {
+        (1..=value.len())
+            .rev()
+            .find_map(|i| value[..i].parse().ok())
+            .unwrap_or(0.)
+    }
+
+    pub fn to_numeric(&self) -> f64 {
         match self {
-            VariableValue::String(string) => string
-                .parse()
-                .map_err(|_| EvaluationError::InvalidNumericLiteral(string.clone())),
-            VariableValue::NumericString(num, _) => Ok(*num),
-            VariableValue::Numeric(val) => Ok(*val),
+            VariableValue::String(string) => Self::parse_longest_prefix(&string[..]),
+            VariableValue::NumericString(num, _) => *num,
+            VariableValue::Numeric(val) => *val,
         }
     }
 
@@ -105,7 +109,7 @@ impl ProgramEvaluator {
             .borrow_mut()
             .get_variable(NUMBER_RECORDS_NAME)
             .unwrap_or(&VariableValue::Numeric(0.))
-            .to_numeric()?;
+            .to_numeric();
         self.engine
             .borrow_mut()
             .set_variable(NUMBER_RECORDS_NAME, VariableValue::Numeric(old_value + 1.));
