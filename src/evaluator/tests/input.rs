@@ -84,10 +84,7 @@ fn update_whole_record() -> Result<(), EvaluationError> {
 
     record.set_field(&closure, 0, VariableValue::String(String::from("abc 123")))?;
 
-    assert_eq!(
-        record,
-        spaced_record!["abc", "123"]
-    );
+    assert_eq!(record, spaced_record!["abc", "123"]);
 
     Ok(())
 }
@@ -99,10 +96,7 @@ fn update_single_field() -> Result<(), EvaluationError> {
 
     record.set_field(&closure, 1, VariableValue::String(String::from("abc")))?;
 
-    assert_eq!(
-        record,
-        spaced_record!["abc", "bar"]
-    );
+    assert_eq!(record, spaced_record!["abc", "bar"]);
 
     Ok(())
 }
@@ -114,10 +108,7 @@ fn update_create_next_field() -> Result<(), EvaluationError> {
 
     record.set_field(&closure, 3, VariableValue::String(String::from("abc")))?;
 
-    assert_eq!(
-        record,
-        spaced_record!["foo", "bar", "abc"]
-    );
+    assert_eq!(record, spaced_record!["foo", "bar", "abc"]);
 
     Ok(())
 }
@@ -129,10 +120,7 @@ fn update_create_gap_field() -> Result<(), EvaluationError> {
 
     record.set_field(&closure, 5, VariableValue::String(String::from("abc")))?;
 
-    assert_eq!(
-        record,
-        spaced_record!["foo", "bar", "", "", "abc"]
-    );
+    assert_eq!(record, spaced_record!["foo", "bar", "", "", "abc"]);
 
     Ok(())
 }
@@ -148,10 +136,7 @@ fn ofs_without_write() -> Result<(), EvaluationError> {
         VariableValue::String(String::from("foo"))
     );
 
-    assert_eq!(
-        record,
-        spaced_record!["foo", "bar"]
-    );
+    assert_eq!(record, spaced_record!["foo", "bar"]);
 
     Ok(())
 }
@@ -164,10 +149,7 @@ fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
 
     record.set_field(&closure, 0, VariableValue::String(String::from("abc 123")))?;
 
-    assert_eq!(
-        record,
-        spaced_record!["abc", "123"]
-    );
+    assert_eq!(record, spaced_record!["abc", "123"]);
 
     Ok(())
 }

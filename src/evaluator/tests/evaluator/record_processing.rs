@@ -78,29 +78,32 @@ fn record_count_basic_increment() -> Result<(), EvaluationError> {
     evaluator.process_record(spaced_record!["foo"])?;
     evaluator.process_record(spaced_record!["bar"])?;
 
-    assert_eq!(env.get_printed_lines(), vec![
-        String::from("1\n"),
-        String::from("2\n"),
-    ]);
+    assert_eq!(
+        env.get_printed_lines(),
+        vec![String::from("1\n"), String::from("2\n"),]
+    );
     Ok(())
 }
 
 #[test]
 fn record_count_begin_end() -> Result<(), EvaluationError> {
     let program = Ast {
-        rules: vec![Rule {
-            pattern: Pattern::Begin,
-            action: Action::Present(vec![Statement::Command(
-                BuiltinCommand::Print,
-                vec![Expression::VariableValue(String::from("NR"))],
-            )]),
-        }, Rule {
-            pattern: Pattern::End,
-            action: Action::Present(vec![Statement::Command(
-                BuiltinCommand::Print,
-                vec![Expression::VariableValue(String::from("NR"))],
-            )]),
-        }],
+        rules: vec![
+            Rule {
+                pattern: Pattern::Begin,
+                action: Action::Present(vec![Statement::Command(
+                    BuiltinCommand::Print,
+                    vec![Expression::VariableValue(String::from("NR"))],
+                )]),
+            },
+            Rule {
+                pattern: Pattern::End,
+                action: Action::Present(vec![Statement::Command(
+                    BuiltinCommand::Print,
+                    vec![Expression::VariableValue(String::from("NR"))],
+                )]),
+            },
+        ],
     };
 
     let env = Rc::new(TestEnvironment::default());
@@ -111,10 +114,10 @@ fn record_count_begin_end() -> Result<(), EvaluationError> {
     evaluator.process_record(spaced_record!["bar"])?;
     evaluator.end()?;
 
-    assert_eq!(env.get_printed_lines(), vec![
-        String::from("0\n"),
-        String::from("2\n"),
-    ]);
+    assert_eq!(
+        env.get_printed_lines(),
+        vec![String::from("0\n"), String::from("2\n"),]
+    );
     Ok(())
 }
 
@@ -137,8 +140,6 @@ fn record_count_assign() -> Result<(), EvaluationError> {
     evaluator.process_record(spaced_record!["foo"])?;
     evaluator.end()?;
 
-    assert_eq!(env.get_printed_lines(), vec![
-        String::from("6\n"),
-    ]);
+    assert_eq!(env.get_printed_lines(), vec![String::from("6\n"),]);
     Ok(())
 }

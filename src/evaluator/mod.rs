@@ -111,12 +111,7 @@ impl ProgramEvaluator {
 
     fn run_all_with_static_pattern(&self, pat: Pattern) -> Result<(), EvaluationError> {
         let mut record = Record::default();
-        for rule in self
-            .program
-            .rules
-            .iter()
-            .filter(|r| r.pattern == pat)
-        {
+        for rule in self.program.rules.iter().filter(|r| r.pattern == pat) {
             self.execute_action(&rule.action, &mut record)?;
         }
 
@@ -150,8 +145,15 @@ impl ProgramEvaluator {
     }
 
     fn increment_num_records(&self) -> Result<(), EvaluationError> {
-        let old_value = self.engine.borrow_mut().get_variable(NUMBER_RECORDS_NAME).unwrap_or(&VariableValue::Numeric(0.)).to_numeric()?;
-        self.engine.borrow_mut().set_variable(NUMBER_RECORDS_NAME, VariableValue::Numeric(old_value + 1.));
+        let old_value = self
+            .engine
+            .borrow_mut()
+            .get_variable(NUMBER_RECORDS_NAME)
+            .unwrap_or(&VariableValue::Numeric(0.))
+            .to_numeric()?;
+        self.engine
+            .borrow_mut()
+            .set_variable(NUMBER_RECORDS_NAME, VariableValue::Numeric(old_value + 1.));
 
         Ok(())
     }
