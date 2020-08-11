@@ -1,7 +1,8 @@
 use super::{
     closure::{Closure, OUTPUT_FIELD_SEPARATOR_NAME, OUTPUT_RECORD_SEPARATOR_NAME},
     record::Record,
-    Environment, EvaluationError, VariableValue,
+    variable::VariableValue,
+    Environment, EvaluationError,
 };
 use crate::parser::ast::{BinOp, BuiltinCommand, Expression, Statement, UnOp};
 use std::{cmp::Ordering, rc::Rc};

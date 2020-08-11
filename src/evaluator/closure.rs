@@ -1,4 +1,4 @@
-use super::{record::Record, EvaluationError, VariableValue};
+use super::{record::Record, variable::VariableValue, EvaluationError};
 use std::collections::HashMap;
 
 use regex::Regex;
