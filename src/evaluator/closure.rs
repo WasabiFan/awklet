@@ -14,6 +14,7 @@ pub const INPUT_FIELD_SEPARATOR_NAME: &str = "FS";
 pub const OUTPUT_FIELD_SEPARATOR_NAME: &str = "OFS";
 pub const INPUT_RECORD_SEPARATOR_NAME: &str = "RS";
 pub const OUTPUT_RECORD_SEPARATOR_NAME: &str = "ORS";
+pub const NUMBER_FIELDS_NAME: &str = "NF";
 pub const NUMBER_RECORDS_NAME: &str = "NR";
 
 #[derive(Debug)]
@@ -34,11 +35,30 @@ impl Closure {
         self.variables.get(name)
     }
 
-    pub fn set_variable(&mut self, name: &str, value: VariableValue) {
+    pub fn perform_variable_assignment(&mut self, name: &str, value: VariableValue) {
+        match name {
+            NUMBER_FIELDS_NAME => self.force_update_num_fields(value.to_numeric() as usize),
+            _ => (),
+        }
+
+        self.set_variable(name, value);
+    }
+
+    fn force_update_num_fields(&mut self, new_size: usize) {
+        let field_separator = self.get_field_separator();
+        self.current_record
+            .rebuild_with_expanded_or_truncated_num_fields(new_size, field_separator.as_str());
+    }
+
+    fn set_variable(&mut self, name: &str, value: VariableValue) {
         self.variables.insert(String::from(name), value);
     }
 
     pub fn set_record(&mut self, record: Record) {
+        self.set_variable(
+            NUMBER_FIELDS_NAME,
+            VariableValue::Numeric(record.num_fields() as f64),
+        );
         self.current_record = record;
     }
 
@@ -72,6 +92,11 @@ impl Closure {
         ))
     }
 
+    fn get_field_separator(&self) -> String {
+        self.get_variable_or_default(OUTPUT_FIELD_SEPARATOR_NAME)
+            .to_string()
+    }
+
     pub fn perform_field_assignment(
         &mut self,
         field: usize,
@@ -79,14 +104,20 @@ impl Closure {
     ) -> Result<(), EvaluationError> {
         match field {
             0 => {
-                self.current_record = self.parse_record_from(value.to_string().as_str())?;
+                self.set_record(self.parse_record_from(value.to_string().as_str())?);
             }
             _ => {
-                let field_separator = self
-                    .get_variable_or_default(OUTPUT_FIELD_SEPARATOR_NAME)
-                    .to_string();
+                let field_separator = self.get_field_separator();
+                let initial_num_fields = self.current_record.num_fields();
                 self.current_record
-                    .set_field(field, value, field_separator.as_str())
+                    .set_field(field, value, field_separator.as_str());
+
+                if self.current_record.num_fields() > initial_num_fields {
+                    self.set_variable(
+                        NUMBER_FIELDS_NAME,
+                        VariableValue::Numeric(self.current_record.num_fields() as f64),
+                    );
+                }
             }
         }
 
@@ -106,6 +137,7 @@ impl Default for Closure {
                 String::from(OUTPUT_FIELD_SEPARATOR_NAME) => VariableValue::String(String::from(" ")),
                 String::from(INPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
                 String::from(OUTPUT_RECORD_SEPARATOR_NAME) => VariableValue::String(String::from("\n")),
+                String::from(NUMBER_FIELDS_NAME) => VariableValue::Numeric(0.),
                 String::from(NUMBER_RECORDS_NAME) => VariableValue::Numeric(0.),
             ],
             current_record: Record::default(),

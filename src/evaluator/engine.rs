@@ -33,7 +33,7 @@ impl ExecutionEngine {
     }
 
     pub fn set_variable(&mut self, name: &str, value: VariableValue) {
-        self.closure.set_variable(name, value);
+        self.closure.perform_variable_assignment(name, value);
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&VariableValue> {
@@ -61,7 +61,8 @@ impl ExecutionEngine {
             Expression::VariableValue(name) => {
                 let current_value = self.closure.get_variable_or_default(name);
                 let new_value = mutate_fn(&current_value)?;
-                self.closure.set_variable(name, new_value.clone());
+                self.closure
+                    .perform_variable_assignment(name, new_value.clone());
                 Ok((current_value, new_value))
             }
             Expression::UnaryOperation(UnOp::FieldReference, field_spec) => {
@@ -102,7 +103,12 @@ impl ExecutionEngine {
         &mut self,
         expression: &Expression,
     ) -> Result<usize, EvaluationError> {
-        Ok(self.evaluate_expression(expression)?.to_numeric() as usize)
+        let numeric_value = self.evaluate_expression(expression)?.to_numeric();
+        if numeric_value >= 0. {
+            Ok(numeric_value as usize)
+        } else {
+            Err(EvaluationError::InvalidFieldReference(-1.))
+        }
     }
 
     fn evaluate_unary_operation(

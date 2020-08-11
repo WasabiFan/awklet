@@ -78,13 +78,50 @@ fn get_nonexistent_field() {
 }
 
 #[test]
-fn update_whole_record() -> Result<(), EvaluationError> {
+fn update_whole_record_string() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
     closure.set_record(spaced_record!["foo", "bar"]);
 
     closure.perform_field_assignment(0, VariableValue::String(String::from("abc 123")))?;
 
     assert_eq!(closure.get_record(), &spaced_record!["abc", "123"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
+
+    Ok(())
+}
+
+#[test]
+fn update_whole_record_different_size() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(spaced_record!["foo", "bar"]);
+
+    closure.perform_field_assignment(0, VariableValue::String(String::from("foo bar baz")))?;
+
+    assert_eq!(closure.get_record(), &spaced_record!["foo", "bar", "baz"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(3.)
+    );
+
+    Ok(())
+}
+
+#[test]
+fn update_whole_record_same_size_updates_nf() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(spaced_record!["foo", "bar"]);
+    closure.perform_variable_assignment("NF", VariableValue::String(String::from("2foo")));
+
+    closure.perform_field_assignment(0, VariableValue::String(String::from("abc 123")))?;
+
+    assert_eq!(closure.get_record(), &spaced_record!["abc", "123"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
 
     Ok(())
 }
@@ -97,6 +134,27 @@ fn update_single_field() -> Result<(), EvaluationError> {
     closure.perform_field_assignment(1, VariableValue::String(String::from("abc")))?;
 
     assert_eq!(closure.get_record(), &spaced_record!["abc", "bar"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
+
+    Ok(())
+}
+
+#[test]
+fn update_single_field_preserves_nf() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(spaced_record!["foo", "bar"]);
+    closure.perform_variable_assignment("NF", VariableValue::String(String::from("2foo")));
+
+    closure.perform_field_assignment(1, VariableValue::String(String::from("abc")))?;
+
+    assert_eq!(closure.get_record(), &spaced_record!["abc", "bar"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::String(String::from("2foo"))
+    );
 
     Ok(())
 }
@@ -109,6 +167,10 @@ fn update_create_next_field() -> Result<(), EvaluationError> {
     closure.perform_field_assignment(3, VariableValue::String(String::from("abc")))?;
 
     assert_eq!(closure.get_record(), &spaced_record!["foo", "bar", "abc"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(3.)
+    );
 
     Ok(())
 }
@@ -124,6 +186,10 @@ fn update_create_gap_field() -> Result<(), EvaluationError> {
         closure.get_record(),
         &spaced_record!["foo", "bar", "", "", "abc"]
     );
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(5.)
+    );
 
     Ok(())
 }
@@ -132,7 +198,7 @@ fn update_create_gap_field() -> Result<(), EvaluationError> {
 fn ofs_without_write() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
     closure.set_record(spaced_record!["foo", "bar"]);
-    closure.set_variable("OFS", VariableValue::String(String::from(",")));
+    closure.perform_variable_assignment("OFS", VariableValue::String(String::from(",")));
 
     assert_eq!(
         closure.get_field(1),
@@ -140,6 +206,10 @@ fn ofs_without_write() -> Result<(), EvaluationError> {
     );
 
     assert_eq!(closure.get_record(), &spaced_record!["foo", "bar"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
 
     Ok(())
 }
@@ -147,12 +217,16 @@ fn ofs_without_write() -> Result<(), EvaluationError> {
 #[test]
 fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
-    closure.set_variable("OFS", VariableValue::String(String::from(",")));
+    closure.perform_variable_assignment("OFS", VariableValue::String(String::from(",")));
     closure.set_record(spaced_record!["foo", "bar"]);
 
     closure.perform_field_assignment(0, VariableValue::String(String::from("abc 123")))?;
 
     assert_eq!(closure.get_record(), &spaced_record!["abc", "123"]);
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
 
     Ok(())
 }
@@ -160,7 +234,7 @@ fn update_whole_record_custom_ofs() -> Result<(), EvaluationError> {
 #[test]
 fn update_single_field_custom_ofs() -> Result<(), EvaluationError> {
     let mut closure = Closure::default();
-    closure.set_variable("OFS", VariableValue::String(String::from(",")));
+    closure.perform_variable_assignment("OFS", VariableValue::String(String::from(",")));
     closure.set_record(spaced_record!["foo", "bar"]);
 
     closure.perform_field_assignment(1, VariableValue::String(String::from("abc")))?;
@@ -171,6 +245,94 @@ fn update_single_field_custom_ofs() -> Result<(), EvaluationError> {
             String::from("abc,bar"),
             vec![String::from("abc"), String::from("bar"),]
         )
+    );
+    assert_eq!(
+        closure.get_variable("NF").unwrap(),
+        &VariableValue::Numeric(2.)
+    );
+
+    Ok(())
+}
+
+#[test]
+fn assign_to_larger_nf_rebuilds() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(Record::new(
+        String::from("foo   bar"),
+        vec![String::from("foo"), String::from("bar")],
+    ));
+
+    closure.perform_variable_assignment("NF", VariableValue::Numeric(3.));
+
+    assert_eq!(
+        closure.get_record(),
+        &Record::new(
+            String::from("foo bar "),
+            vec![String::from("foo"), String::from("bar"), String::from("")]
+        )
+    );
+
+    Ok(())
+}
+
+#[test]
+fn assign_to_equal_nf_rebuilds() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(Record::new(
+        String::from("foo   bar"),
+        vec![String::from("foo"), String::from("bar")],
+    ));
+
+    closure.perform_variable_assignment("NF", VariableValue::Numeric(2.));
+
+    assert_eq!(
+        closure.get_record(),
+        &Record::new(
+            String::from("foo bar"),
+            vec![String::from("foo"), String::from("bar")]
+        )
+    );
+
+    Ok(())
+}
+
+#[test]
+fn assign_to_smaller_nf_rebuilds() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.set_record(Record::new(
+        String::from("foo   bar"),
+        vec![String::from("foo"), String::from("bar")],
+    ));
+
+    closure.perform_variable_assignment("NF", VariableValue::Numeric(1.));
+
+    assert_eq!(
+        closure.get_record(),
+        &Record::new(String::from("foo"), vec![String::from("foo")])
+    );
+
+    Ok(())
+}
+
+#[test]
+fn set_record_updates_record() {
+    let mut closure = Closure::default();
+
+    closure.set_record(spaced_record!["foo", "bar"]);
+
+    assert_eq!(closure.get_record(), &spaced_record!["foo", "bar"]);
+}
+
+#[test]
+fn set_record_updates_nf() -> Result<(), EvaluationError> {
+    let mut closure = Closure::default();
+    closure.perform_variable_assignment("NF", VariableValue::Numeric(3.));
+
+    closure.set_record(spaced_record!["foo", "bar"]);
+
+    assert_eq!(
+        closure.get_variable("NF"),
+        Some(&VariableValue::Numeric(2.))
     );
 
     Ok(())
