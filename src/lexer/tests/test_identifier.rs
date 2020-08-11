@@ -1,4 +1,5 @@
 use crate::lexer::{tokenize, Token, TokenizeError};
+use matches::assert_matches;
 
 #[test]
 fn basic_identifier() -> Result<(), TokenizeError> {

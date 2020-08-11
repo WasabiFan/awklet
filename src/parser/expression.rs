@@ -85,6 +85,7 @@ pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseEr
 mod tests {
     use super::{Expression, ParseError, Token};
     use crate::parser::ast::{BinOp, UnOp};
+    use matches::assert_matches;
 
     #[test]
     fn variable() -> Result<(), ParseError> {
