@@ -19,9 +19,9 @@ pub enum EvaluationError {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ConsumeRecordError {
-    EndOfStream,
+pub enum RecordProcessingError {
     Evaluation(EvaluationError),
+    ConsumeRecord(EvaluationError),
 }
 
 pub trait Environment {
@@ -117,9 +117,12 @@ impl ProgramEvaluator {
         }
     }
 
-    pub fn consume_next_record(&self, source: &str) -> Result<(usize, Record), ConsumeRecordError> {
+    pub fn consume_next_record(
+        &self,
+        source: &str,
+    ) -> Result<Option<(usize, Record)>, EvaluationError> {
         if source.len() == 0 {
-            return Err(ConsumeRecordError::EndOfStream);
+            return Ok(None);
         }
 
         let range = self.find_next_separator(source)?.unwrap_or(Range {
@@ -129,10 +132,23 @@ impl ProgramEvaluator {
         let record_text = &source[0..range.start];
         let consumed_chars = range.end;
 
-        Ok((
+        Ok(Some((
             consumed_chars,
             self.engine.borrow().parse_record_from(record_text)?,
-        ))
+        )))
+    }
+
+    pub fn consume_and_process_all(&self, source: &str) -> Result<(), RecordProcessingError> {
+        let mut remaining_source = source;
+        while let Some((consumed_chars, record)) = self
+            .consume_next_record(remaining_source)
+            .map_err(RecordProcessingError::ConsumeRecord)?
+        {
+            self.process_record(record)
+                .map_err(RecordProcessingError::Evaluation)?;
+            remaining_source = &remaining_source[consumed_chars..];
+        }
+        return Ok(());
     }
 
     fn execute_action(&self, action: &Action) -> Result<(), EvaluationError> {
@@ -156,12 +172,6 @@ impl ProgramEvaluator {
             .get_variable(name)
             .ok_or(EvaluationError::NoSuchVariable(String::from(name)))?
             .clone())
-    }
-}
-
-impl From<EvaluationError> for ConsumeRecordError {
-    fn from(e: EvaluationError) -> Self {
-        ConsumeRecordError::Evaluation(e)
     }
 }
 
