@@ -89,4 +89,25 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn parse_leading_newlines() -> Result<(), ParseError> {
+        let program = "
+        {}";
+
+        let tokens = tokenize(program).unwrap();
+        let ast = parse(&tokens[..])?;
+
+        assert_eq!(
+            ast,
+            Ast {
+                rules: vec![Rule {
+                    pattern: Pattern::Empty,
+                    action: Action::Present(vec![])
+                },]
+            }
+        );
+
+        Ok(())
+    }
 }

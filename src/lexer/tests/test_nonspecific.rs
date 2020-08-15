@@ -85,3 +85,24 @@ fn comparisons() -> Result<(), TokenizeError> {
 
     Ok(())
 }
+
+#[test]
+fn leading_newlines() -> Result<(), TokenizeError> {
+    let source = "
+    BEGIN {
+    }";
+    let tokens = tokenize(source)?;
+
+    assert_eq!(
+        tokens,
+        vec![
+            Token::StatementSeparator,
+            Token::BeginKeyword,
+            Token::OpenBrace,
+            Token::StatementSeparator,
+            Token::CloseBrace
+        ]
+    );
+
+    Ok(())
+}

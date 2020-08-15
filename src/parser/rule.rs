@@ -7,13 +7,21 @@ use crate::parser::action::parse_action;
 use crate::parser::pattern::parse_pattern;
 
 pub fn parse_rule(tokens: &[Token]) -> Result<(usize, Rule), ParseError> {
-    let (pattern_consumed_tokens, pattern) = parse_pattern(&tokens)?;
-    let (action_consumed_tokens, action) = parse_action(&tokens[pattern_consumed_tokens..])?;
+    let trimmed_leading_tokens = tokens
+        .iter()
+        .position(|t| !matches!(t, Token::StatementSeparator))
+        .unwrap_or(0);
+    let (pattern_consumed_tokens, pattern) = parse_pattern(&tokens[trimmed_leading_tokens..])?;
+    let (action_consumed_tokens, action) =
+        parse_action(&tokens[trimmed_leading_tokens + pattern_consumed_tokens..])?;
     let consumed_separators = consume_all_statement_separators(
-        &tokens[pattern_consumed_tokens + action_consumed_tokens..],
+        &tokens[trimmed_leading_tokens + pattern_consumed_tokens + action_consumed_tokens..],
     );
     return Ok((
-        pattern_consumed_tokens + action_consumed_tokens + consumed_separators,
+        trimmed_leading_tokens
+            + pattern_consumed_tokens
+            + action_consumed_tokens
+            + consumed_separators,
         Rule { pattern, action },
     ));
 }
