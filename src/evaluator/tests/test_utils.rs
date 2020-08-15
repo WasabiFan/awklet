@@ -26,4 +26,7 @@ macro_rules! spaced_record {
             strings
         )
     });
+    () => ({
+        Record::default()
+    })
 }

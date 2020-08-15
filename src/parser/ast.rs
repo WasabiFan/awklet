@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub struct Ast {
     pub rules: Vec<Rule>,
 }

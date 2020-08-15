@@ -1,8 +1,8 @@
 use crate::parser::ast::{Action, Ast, BuiltinCommand, Expression, Pattern, Statement};
-use closure::NUMBER_RECORDS_NAME;
+use closure::{INPUT_RECORD_SEPARATOR_NAME, NUMBER_RECORDS_NAME};
 use engine::ExecutionEngine;
 use record::Record;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, ops::Range, rc::Rc};
 use variable::VariableValue;
 
 mod closure;
@@ -16,6 +16,12 @@ pub enum EvaluationError {
     InvalidNumericLiteral(String),
     NonVariableAsLvalue(Expression),
     InvalidFieldReference(f64),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ConsumeRecordError {
+    EndOfStream,
+    Evaluation(EvaluationError),
 }
 
 pub trait Environment {
@@ -93,6 +99,42 @@ impl ProgramEvaluator {
         Ok(())
     }
 
+    fn find_next_separator(&self, source: &str) -> Result<Option<Range<usize>>, EvaluationError> {
+        let record_sep = self.get_variable(INPUT_RECORD_SEPARATOR_NAME)?.to_string();
+        match record_sep.len() {
+            0 => {
+                // Special case: "one or more blank lines"
+                todo!();
+            }
+            1 => {
+                let sep_start = source.find(record_sep.as_str());
+                Ok(sep_start.map(|start| start..start + 1))
+            }
+            _ => {
+                // In POSIX awk, unsupported; in gawk, a regex.
+                todo!();
+            }
+        }
+    }
+
+    pub fn consume_next_record(&self, source: &str) -> Result<(usize, Record), ConsumeRecordError> {
+        if source.len() == 0 {
+            return Err(ConsumeRecordError::EndOfStream);
+        }
+
+        let range = self.find_next_separator(source)?.unwrap_or(Range {
+            start: source.len(),
+            end: source.len(),
+        });
+        let record_text = &source[0..range.start];
+        let consumed_chars = range.end;
+
+        Ok((
+            consumed_chars,
+            self.engine.borrow().parse_record_from(record_text)?,
+        ))
+    }
+
     fn execute_action(&self, action: &Action) -> Result<(), EvaluationError> {
         match action {
             Action::Empty => self
@@ -107,13 +149,19 @@ impl ProgramEvaluator {
         self.engine.borrow_mut().set_variable(name, value);
     }
 
-    pub fn get_variable(&mut self, name: &str) -> Result<VariableValue, EvaluationError> {
+    pub fn get_variable(&self, name: &str) -> Result<VariableValue, EvaluationError> {
         Ok(self
             .engine
-            .borrow_mut()
+            .borrow()
             .get_variable(name)
             .ok_or(EvaluationError::NoSuchVariable(String::from(name)))?
             .clone())
+    }
+}
+
+impl From<EvaluationError> for ConsumeRecordError {
+    fn from(e: EvaluationError) -> Self {
+        ConsumeRecordError::Evaluation(e)
     }
 }
 

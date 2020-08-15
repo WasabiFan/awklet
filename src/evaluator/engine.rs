@@ -50,6 +50,10 @@ impl ExecutionEngine {
         self.closure.get_record()
     }
 
+    pub fn parse_record_from(&self, full_text: &str) -> Result<Record, EvaluationError> {
+        self.closure.parse_record_from(full_text)
+    }
+
     fn mutate_lvalue<F>(
         &mut self,
         exp: &Expression,

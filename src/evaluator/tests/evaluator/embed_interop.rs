@@ -11,7 +11,7 @@ fn get_set_variable() -> Result<(), EvaluationError> {
     let program = Ast { rules: vec![] };
 
     let env = Rc::new(TestEnvironment::default());
-    let mut evaluator = ProgramEvaluator::new(program, env.clone());
+    let evaluator = ProgramEvaluator::new(program, env.clone());
 
     evaluator.set_variable("myvariable", VariableValue::String(String::from("foo")));
     assert_eq!(
@@ -27,7 +27,7 @@ fn get_nonexistent_variable() {
     let program = Ast { rules: vec![] };
 
     let env = Rc::new(TestEnvironment::default());
-    let mut evaluator = ProgramEvaluator::new(program, env.clone());
+    let evaluator = ProgramEvaluator::new(program, env.clone());
 
     assert_eq!(
         evaluator.get_variable("i_dont_exist"),
