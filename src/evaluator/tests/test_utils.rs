@@ -27,6 +27,6 @@ macro_rules! spaced_record {
         )
     });
     () => ({
-        Record::default()
+        crate::evaluator::record::Record::default()
     })
 }

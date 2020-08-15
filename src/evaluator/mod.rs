@@ -13,6 +13,7 @@ mod variable;
 #[derive(Debug, PartialEq)]
 pub enum EvaluationError {
     NoSuchVariable(String),
+    NoSuchFunction(String),
     InvalidNumericLiteral(String),
     NonVariableAsLvalue(Expression),
     InvalidFieldReference(f64),

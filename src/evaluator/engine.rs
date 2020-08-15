@@ -241,6 +241,22 @@ impl ExecutionEngine {
         }
     }
 
+    fn evaluate_builtin_function_call(
+        &mut self,
+        name: &str,
+        args: &[Expression],
+    ) -> Result<VariableValue, EvaluationError> {
+        match (name, args) {
+            ("length", [arg]) => Ok(VariableValue::Numeric(
+                self.evaluate_expression(arg)?.to_string().len() as f64,
+            )),
+            ("length", []) => Ok(VariableValue::Numeric(
+                self.closure.get_field(0).to_string().len() as f64,
+            )),
+            _ => Err(EvaluationError::NoSuchFunction(String::from(name))),
+        }
+    }
+
     pub fn evaluate_expression(
         &mut self,
         expression: &Expression,
@@ -254,7 +270,9 @@ impl ExecutionEngine {
                 self.evaluate_binary_operation(op, left, right)
             }
             Expression::RegexLiteral(_pattern) => todo!(),
-            Expression::FunctionCall(_name, _args) => todo!(),
+            Expression::FunctionCall(name, args) => {
+                self.evaluate_builtin_function_call(name.as_str(), &args[..])
+            }
         }
     }
 
