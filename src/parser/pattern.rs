@@ -12,9 +12,9 @@ pub fn parse_pattern(tokens: &[Token]) -> Result<(usize, Pattern), ParseError> {
             let (consumed_tokens, expressions) = parse_greedy_comma_separated_expressions(tokens)?;
             Ok((
                 consumed_tokens,
-                match &expressions[..] {
-                    &[ref single_exp] => Pattern::SingleCondition(single_exp.clone()),
-                    &[ref range_start, ref range_end] => {
+                match expressions[..] {
+                    [ref single_exp] => Pattern::SingleCondition(single_exp.clone()),
+                    [ref range_start, ref range_end] => {
                         Pattern::Range(range_start.clone(), range_end.clone())
                     }
                     _ => return Err(ParseError::SyntaxError),

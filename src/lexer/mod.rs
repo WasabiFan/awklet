@@ -57,7 +57,7 @@ fn try_consume_numeric_literal(source: &LexerSource<'_>) -> Option<TokenConsumeR
     let matched_str = source.following_text(num_consumed_bytes);
 
     let remaining_source = source.clone_advance_by(num_consumed_bytes);
-    if let Some(_) = try_consume_identifier(&remaining_source) {
+    if try_consume_identifier(&remaining_source).is_some() {
         return None;
     }
 
@@ -214,7 +214,7 @@ enum LexerStepOutput<'s> {
 }
 
 impl LexerState<'_> {
-    pub fn with_source<'s>(text: &'s str) -> LexerState<'s> {
+    pub fn with_source(text: &str) -> LexerState<'_> {
         let mut lexer = LexerState {
             source: LexerSource {
                 text,

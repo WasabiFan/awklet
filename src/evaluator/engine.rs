@@ -278,7 +278,7 @@ impl ExecutionEngine {
 
     pub fn execute_statement(&mut self, statement: &Statement) -> Result<(), EvaluationError> {
         match statement {
-            Statement::Command(BuiltinCommand::Print, args) if args.len() == 0 => {
+            Statement::Command(BuiltinCommand::Print, args) if args.is_empty() => {
                 self.execute_statement(&NO_ARGS_PRINT_SUBSTITUTION.clone())?
             }
             Statement::Command(BuiltinCommand::Print, args) => {

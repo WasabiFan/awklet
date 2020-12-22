@@ -82,11 +82,7 @@ impl BinOp {
     }
 
     pub fn is_valid_op(token: &Token) -> bool {
-        if let Some(_) = BinOp::partial_from_token(token) {
-            true
-        } else {
-            false
-        }
+        BinOp::partial_from_token(token).is_some()
     }
 }
 
@@ -110,11 +106,7 @@ impl UnOp {
     }
 
     pub fn is_valid_op(token: &Token) -> bool {
-        if let Some(_) = UnOp::partial_from_token(token) {
-            true
-        } else {
-            false
-        }
+        UnOp::partial_from_token(token).is_some()
     }
 }
 

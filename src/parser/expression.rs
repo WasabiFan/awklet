@@ -64,12 +64,12 @@ pub fn parse_expression(tokens: &[Token]) -> Result<(usize, Expression), ParseEr
     while position < tokens.len() {
         let remaining_tokens = &tokens[position..];
         if let Ok((consumed_tokens, expression)) = parse_single_expression_unit(remaining_tokens) {
-            position = position + consumed_tokens;
+            position += consumed_tokens;
             parser.add_known_expression(expression);
         } else if BinOp::is_valid_op(&remaining_tokens[0])
             || UnOp::is_valid_op(&remaining_tokens[0])
         {
-            position = position + 1;
+            position += 1;
             parser.add_operator_token(remaining_tokens[0].clone());
         } else {
             break;

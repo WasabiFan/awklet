@@ -17,13 +17,14 @@ pub fn parse_rule(tokens: &[Token]) -> Result<(usize, Rule), ParseError> {
     let consumed_separators = consume_all_statement_separators(
         &tokens[trimmed_leading_tokens + pattern_consumed_tokens + action_consumed_tokens..],
     );
-    return Ok((
+
+    Ok((
         trimmed_leading_tokens
             + pattern_consumed_tokens
             + action_consumed_tokens
             + consumed_separators,
         Rule { pattern, action },
-    ));
+    ))
 }
 
 #[cfg(test)]

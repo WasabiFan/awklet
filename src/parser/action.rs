@@ -27,8 +27,8 @@ pub fn parse_statements(tokens: &[Token]) -> Result<(usize, Vec<Statement>), Par
     while let Ok((consumed_tokens, statement)) = parse_statement(&tokens[position..]) {
         statements.push(statement);
 
-        position = position + consumed_tokens;
-        position = position + consume_all_statement_separators(&tokens[position..]);
+        position += consumed_tokens;
+        position += consume_all_statement_separators(&tokens[position..]);
     }
 
     Ok((position, statements))

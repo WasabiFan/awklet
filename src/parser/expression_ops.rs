@@ -211,9 +211,11 @@ impl OperatorParser {
 
     fn coalesce_operator_class(&mut self, class: OpPrecedenceClass) -> Result<(), ParseError> {
         match class {
-            OpPrecedenceClass::StringConcat => Ok(self.concat_adjacent_expressions()),
-            _ => self.coalesce_discrete_token_class(class),
+            OpPrecedenceClass::StringConcat => self.concat_adjacent_expressions(),
+            _ => self.coalesce_discrete_token_class(class)?,
         }
+
+        Ok(())
     }
 
     fn concat_adjacent_expressions(&mut self) {
@@ -234,7 +236,7 @@ impl OperatorParser {
 
                 i = self.replace_roots_with_expression(i..=i + 1, expr)
             } else {
-                i = i + 1;
+                i += 1;
             }
         }
     }

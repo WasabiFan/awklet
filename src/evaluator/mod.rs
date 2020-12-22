@@ -122,7 +122,7 @@ impl ProgramEvaluator {
         &self,
         source: &str,
     ) -> Result<Option<(usize, Record)>, EvaluationError> {
-        if source.len() == 0 {
+        if source.is_empty() {
             return Ok(None);
         }
 
@@ -149,7 +149,7 @@ impl ProgramEvaluator {
                 .map_err(RecordProcessingError::Evaluation)?;
             remaining_source = &remaining_source[consumed_chars..];
         }
-        return Ok(());
+        Ok(())
     }
 
     fn execute_action(&self, action: &Action) -> Result<(), EvaluationError> {
@@ -171,7 +171,7 @@ impl ProgramEvaluator {
             .engine
             .borrow()
             .get_variable(name)
-            .ok_or(EvaluationError::NoSuchVariable(String::from(name)))?
+            .ok_or_else(|| EvaluationError::NoSuchVariable(String::from(name)))?
             .clone())
     }
 }
