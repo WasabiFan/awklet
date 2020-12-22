@@ -25,81 +25,109 @@ pub enum TokenizeError {
     SyntaxError,
 }
 
-fn try_extract_token_at_start<'t>(source: &'t str, token_regex: &Regex) -> Option<&'t str> {
-    token_regex.find(source).and_then(|m| {
+struct TokenConsumeResult {
+    pub token: Token,
+    pub bytes_consumed: usize,
+}
+
+impl TokenConsumeResult {
+    pub fn new(token: Token, bytes_consumed: usize) -> TokenConsumeResult {
+        TokenConsumeResult {
+            token,
+            bytes_consumed,
+        }
+    }
+}
+
+fn try_extract_token_at_start<'l, 't>(
+    source: &'l LexerSource<'t>,
+    token_regex: &Regex,
+) -> Option<usize> {
+    token_regex.find(source.remaining_text()).and_then(|m| {
         if m.start() == 0 {
-            Some(m.as_str())
+            Some(m.end())
         } else {
             None
         }
     })
 }
 
-fn try_consume_numeric_literal(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*NUMERIC_LITERAL_REGEX)?;
-    let num_consumed_bytes = matched_str.len();
+fn try_consume_numeric_literal(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let num_consumed_bytes = try_extract_token_at_start(&source, &*NUMERIC_LITERAL_REGEX)?;
+    let matched_str = source.following_text(num_consumed_bytes);
 
-    if let Some(_) = try_consume_identifier(&current_source[num_consumed_bytes..]) {
+    let remaining_source = source.clone_advance_by(num_consumed_bytes);
+    if let Some(_) = try_consume_identifier(&remaining_source) {
         return None;
     }
 
     let num = matched_str.parse().ok()?;
-    Some((num_consumed_bytes, Token::NumericLiteral(num)))
+    Some(TokenConsumeResult::new(
+        Token::NumericLiteral(num),
+        num_consumed_bytes,
+    ))
 }
 
-fn try_consume_string_literal(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*STRING_LITERAL_REGEX)?;
-    let num_consumed_bytes = matched_str.len();
+fn try_consume_string_literal(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let num_consumed_bytes = try_extract_token_at_start(&source, &*STRING_LITERAL_REGEX)?;
+    let matched_str = source.following_text(num_consumed_bytes);
 
     let contained_string = &matched_str[1..num_consumed_bytes - 1];
     let unescaped_string = contained_string.replace("\\\"", "\"");
 
-    Some((num_consumed_bytes, Token::StringLiteral(unescaped_string)))
+    Some(TokenConsumeResult::new(
+        Token::StringLiteral(unescaped_string),
+        num_consumed_bytes,
+    ))
 }
 
-fn try_consume_regex_literal(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*REGEX_LITERAL_REGEX)?;
-    let num_consumed_bytes = matched_str.len();
+fn try_consume_regex_literal(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let num_consumed_bytes = try_extract_token_at_start(&source, &*REGEX_LITERAL_REGEX)?;
+    let matched_str = source.following_text(num_consumed_bytes);
 
     // We have no good way to distinguish between between regex and e.g. division. A regex cannot
     // continue onto multiple lines, and this can be used for disambiguation so long as there are
-    // not multiple division operators on one line.
+    // not multiple division operators on one line. The regex will only match intra-line pairs.
+
     let contained_regex = &matched_str[1..num_consumed_bytes - 1];
     let unescaped_regex = contained_regex.replace("\\/", "/");
 
-    Some((num_consumed_bytes, Token::RegexLiteral(unescaped_regex)))
+    Some(TokenConsumeResult::new(
+        Token::RegexLiteral(unescaped_regex),
+        num_consumed_bytes,
+    ))
 }
 
-fn try_consume_identifier(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*IDENTIFIER_REGEX)?;
+fn try_consume_identifier(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*IDENTIFIER_REGEX)?;
 
-    let token = match matched_str {
+    let token = match source.following_text(len) {
         "BEGIN" => Token::BeginKeyword,
         "END" => Token::EndKeyword,
-        _ => Token::Identifier(String::from(matched_str)),
+        s => Token::Identifier(String::from(s)),
     };
 
-    Some((matched_str.len(), token))
+    Some(TokenConsumeResult::new(token, len))
 }
 
-fn try_consume_brace_or_paren(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*BRACE_OR_PAREN_REGEX)?;
+fn try_consume_brace_or_paren(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*BRACE_OR_PAREN_REGEX)?;
 
-    let token = match matched_str {
+    let token = match source.following_text(len) {
         "(" => Token::OpenParen,
         ")" => Token::CloseParen,
         "{" => Token::OpenBrace,
         "}" => Token::CloseBrace,
-        _ => panic!("Regex matched unexpected token {}", matched_str),
+        s => panic!("Regex matched unexpected token {}", s),
     };
 
-    Some((matched_str.len(), token))
+    Some(TokenConsumeResult::new(token, len))
 }
 
-fn try_consume_math_operator(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*MATH_OPERATOR_REGEX)?;
+fn try_consume_math_operator(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*MATH_OPERATOR_REGEX)?;
 
-    let token = match matched_str {
+    let token = match source.following_text(len) {
         "++" => Token::Increment,
         "--" => Token::Decrement,
 
@@ -112,46 +140,71 @@ fn try_consume_math_operator(current_source: &str) -> Option<(usize, Token)> {
         "=" => Token::AssignEquals,
         "+=" => Token::PlusEquals,
         "-=" => Token::MinusEquals,
-        _ => panic!("Regex matched unexpected token {}", matched_str),
+        s => panic!("Regex matched unexpected token {}", s),
     };
 
-    Some((matched_str.len(), token))
+    Some(TokenConsumeResult::new(token, len))
 }
 
-fn try_consume_relational_comparison(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*RELATIONAL_COMPARISON_REGEX)?;
+fn try_consume_relational_comparison(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*RELATIONAL_COMPARISON_REGEX)?;
 
-    let token = match matched_str {
+    let token = match source.following_text(len) {
         "<" => Token::LeftCaret,
         "<=" => Token::LessEqual,
         "==" => Token::CompareEquals,
         "!=" => Token::BangEqual,
         ">" => Token::RightCaret,
         ">=" => Token::GreaterEqual,
-        _ => panic!("Regex matched unexpected token {}", matched_str),
+        s => panic!("Regex matched unexpected token {}", s),
     };
 
-    Some((matched_str.len(), token))
+    Some(TokenConsumeResult::new(token, len))
 }
 
-fn try_consume_comma(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*COMMA_REGEX)?;
-    Some((matched_str.len(), Token::Comma))
+fn try_consume_comma(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*COMMA_REGEX)?;
+    Some(TokenConsumeResult::new(Token::Comma, len))
 }
 
-fn try_consume_statement_separator(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*STATEMENT_SEPARATOR_REGEX)?;
-    Some((matched_str.len(), Token::StatementSeparator))
+fn try_consume_statement_separator(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(&source, &*STATEMENT_SEPARATOR_REGEX)?;
+    Some(TokenConsumeResult::new(Token::StatementSeparator, len))
 }
 
-fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
-    let matched_str = try_extract_token_at_start(current_source, &*FIELD_REFERENCE_REGEX)?;
-    Some((matched_str.len(), Token::FieldReference))
+fn try_consume_field_reference(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
+    let len = try_extract_token_at_start(source, &*FIELD_REFERENCE_REGEX)?;
+    Some(TokenConsumeResult::new(Token::FieldReference, len))
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+struct LexerSource<'s> {
+    pub text: &'s str,
+    pub next_char_idx: usize,
+}
+
+impl LexerSource<'_> {
+    fn remaining_text(&self) -> &str {
+        &self.text[self.next_char_idx..]
+    }
+
+    fn following_text(&self, len: usize) -> &str {
+        &self.text[self.next_char_idx..self.next_char_idx + len]
+    }
+
+    fn advance_by(&mut self, len: usize) {
+        self.next_char_idx += len;
+    }
+
+    fn clone_advance_by(&self, len: usize) -> Self {
+        let mut new = self.clone();
+        new.advance_by(len);
+        new
+    }
 }
 
 struct LexerState<'s> {
-    source_text: &'s str,
-    next_char_idx: usize,
+    source: LexerSource<'s>,
     extracted_tokens: Vec<Token>,
 }
 
@@ -161,10 +214,12 @@ enum LexerStepOutput<'s> {
 }
 
 impl LexerState<'_> {
-    pub fn with_source<'s>(source_text: &'s str) -> LexerState<'s> {
+    pub fn with_source<'s>(text: &'s str) -> LexerState<'s> {
         let mut lexer = LexerState {
-            source_text,
-            next_char_idx: 0usize,
+            source: LexerSource {
+                text,
+                next_char_idx: 0usize,
+            },
             extracted_tokens: Vec::default(),
         };
 
@@ -173,24 +228,23 @@ impl LexerState<'_> {
         lexer
     }
 
-    fn remaining_text(&self) -> &str {
-        &self.source_text[self.next_char_idx..]
-    }
-
     fn try_consume_token(&mut self) -> Result<(), TokenizeError> {
-        let (num_consumed_chars, token) = try_consume_numeric_literal(self.remaining_text())
-            .or_else(|| try_consume_regex_literal(self.remaining_text()))
-            .or_else(|| try_consume_statement_separator(self.remaining_text()))
-            .or_else(|| try_consume_brace_or_paren(self.remaining_text()))
-            .or_else(|| try_consume_comma(self.remaining_text()))
-            .or_else(|| try_consume_field_reference(self.remaining_text()))
-            .or_else(|| try_consume_relational_comparison(self.remaining_text()))
-            .or_else(|| try_consume_math_operator(self.remaining_text()))
-            .or_else(|| try_consume_string_literal(self.remaining_text()))
-            .or_else(|| try_consume_identifier(self.remaining_text()))
+        let TokenConsumeResult {
+            token,
+            bytes_consumed,
+        } = try_consume_numeric_literal(&self.source)
+            .or_else(|| try_consume_regex_literal(&self.source))
+            .or_else(|| try_consume_statement_separator(&self.source))
+            .or_else(|| try_consume_brace_or_paren(&self.source))
+            .or_else(|| try_consume_comma(&self.source))
+            .or_else(|| try_consume_field_reference(&self.source))
+            .or_else(|| try_consume_relational_comparison(&self.source))
+            .or_else(|| try_consume_math_operator(&self.source))
+            .or_else(|| try_consume_string_literal(&self.source))
+            .or_else(|| try_consume_identifier(&self.source))
             .ok_or(TokenizeError::SyntaxError)?;
 
-        self.next_char_idx += num_consumed_chars;
+        self.source.advance_by(bytes_consumed);
         self.extracted_tokens.push(token);
 
         Ok(())
@@ -198,10 +252,11 @@ impl LexerState<'_> {
 
     fn consume_leading_non_token_whitespace(&mut self) {
         let non_token_whitespace: &[_] = &[' ', '\t'];
-        let remaining_text = self.remaining_text();
+        let remaining_text = self.source.remaining_text();
 
         if let Some((0, m)) = remaining_text.match_indices(non_token_whitespace).next() {
-            self.next_char_idx += m.len();
+            let size = m.len();
+            self.source.advance_by(size);
         }
     }
 
@@ -212,7 +267,7 @@ impl LexerState<'_> {
         self.try_consume_token()?;
         self.consume_leading_non_token_whitespace();
 
-        if self.remaining_text().is_empty() {
+        if self.source.remaining_text().is_empty() {
             Ok(LexerStepOutput::Complete(self.extracted_tokens))
         } else {
             Ok(LexerStepOutput::<'s>::Incomplete(self))
