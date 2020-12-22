@@ -1,5 +1,7 @@
 mod token;
 
+use std::collections::HashMap;
+
 pub use token::Token;
 
 use lazy_static::lazy_static;
@@ -11,13 +13,37 @@ lazy_static! {
     static ref STRING_LITERAL_REGEX: Regex = Regex::new("\"\"|\"([^\"]*(\\\\\")?)*[^\\\\]\"").unwrap();
     static ref REGEX_LITERAL_REGEX: Regex = Regex::new("//|/([^/\\n]*(\\\\/)?)*[^\\\\]/").unwrap();
     static ref IDENTIFIER_REGEX: Regex = Regex::new("[a-zA-Z_][a-zA-Z_\\d]*").unwrap();
-    static ref BRACE_OR_PAREN_REGEX: Regex = Regex::new("\\{|\\}|\\(|\\)").unwrap();
-    static ref MATH_OPERATOR_REGEX: Regex = Regex::new("\\+\\+|--|\\+=|-=|\\+|-|\\*|/|%|=").unwrap();
-    static ref RELATIONAL_COMPARISON_REGEX: Regex = Regex::new("<=|==|!=|>=|<|>").unwrap();
-    static ref COMMA_REGEX: Regex = Regex::new(",").unwrap();
     // Statement separator coalesces adjacent separators and eats intermediate newlines
     static ref STATEMENT_SEPARATOR_REGEX: Regex = Regex::new("((\n|;) *)+").unwrap();
-    static ref FIELD_REFERENCE_REGEX: Regex = Regex::new("\\$").unwrap();
+
+    static ref BRACE_OR_PAREN_TOKENS: HashMap<&'static str, Token> = hashmap![
+        "(" => Token::OpenParen,
+        ")" => Token::CloseParen,
+        "{" => Token::OpenBrace,
+        "}" => Token::CloseBrace,
+    ];
+    static ref MATH_OPERATOR_TOKENS: HashMap<&'static str, Token> = hashmap![
+        "++" => Token::Increment,
+        "--" => Token::Decrement,
+
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "*" => Token::Star,
+        "/" => Token::Slash,
+        "%" => Token::Mod,
+
+        "=" => Token::AssignEquals,
+        "+=" => Token::PlusEquals,
+        "-=" => Token::MinusEquals,
+    ];
+    static ref RELATIONAL_COMPARISON_TOKENS: HashMap<&'static str, Token> = hashmap![
+        "<" => Token::LeftCaret,
+        "<=" => Token::LessEqual,
+        "==" => Token::CompareEquals,
+        "!=" => Token::BangEqual,
+        ">" => Token::RightCaret,
+        ">=" => Token::GreaterEqual,
+    ];
 }
 
 #[derive(Debug)]
@@ -110,61 +136,40 @@ fn try_consume_identifier(source: &LexerSource<'_>) -> Option<TokenConsumeResult
     Some(TokenConsumeResult::new(token, len))
 }
 
+fn try_consume_fixed(
+    source: &LexerSource<'_>,
+    options: &HashMap<&str, Token>,
+) -> Option<TokenConsumeResult> {
+    let max_length_key = options.keys().max_by_key(|s| s.len())?.len();
+
+    for len in (1..=max_length_key).rev() {
+        let prefix = source.fallible_following_text(len);
+        if let Some(token) = prefix.and_then(|prefix| options.get(prefix)) {
+            return Some(TokenConsumeResult::new(token.clone(), len));
+        }
+    }
+
+    None
+}
+
 fn try_consume_brace_or_paren(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
-    let len = try_extract_token_at_start(&source, &*BRACE_OR_PAREN_REGEX)?;
-
-    let token = match source.following_text(len) {
-        "(" => Token::OpenParen,
-        ")" => Token::CloseParen,
-        "{" => Token::OpenBrace,
-        "}" => Token::CloseBrace,
-        s => panic!("Regex matched unexpected token {}", s),
-    };
-
-    Some(TokenConsumeResult::new(token, len))
+    try_consume_fixed(source, &BRACE_OR_PAREN_TOKENS)
 }
 
 fn try_consume_math_operator(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
-    let len = try_extract_token_at_start(&source, &*MATH_OPERATOR_REGEX)?;
-
-    let token = match source.following_text(len) {
-        "++" => Token::Increment,
-        "--" => Token::Decrement,
-
-        "+" => Token::Plus,
-        "-" => Token::Minus,
-        "*" => Token::Star,
-        "/" => Token::Slash,
-        "%" => Token::Mod,
-
-        "=" => Token::AssignEquals,
-        "+=" => Token::PlusEquals,
-        "-=" => Token::MinusEquals,
-        s => panic!("Regex matched unexpected token {}", s),
-    };
-
-    Some(TokenConsumeResult::new(token, len))
+    try_consume_fixed(source, &MATH_OPERATOR_TOKENS)
 }
 
 fn try_consume_relational_comparison(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
-    let len = try_extract_token_at_start(&source, &*RELATIONAL_COMPARISON_REGEX)?;
-
-    let token = match source.following_text(len) {
-        "<" => Token::LeftCaret,
-        "<=" => Token::LessEqual,
-        "==" => Token::CompareEquals,
-        "!=" => Token::BangEqual,
-        ">" => Token::RightCaret,
-        ">=" => Token::GreaterEqual,
-        s => panic!("Regex matched unexpected token {}", s),
-    };
-
-    Some(TokenConsumeResult::new(token, len))
+    try_consume_fixed(source, &RELATIONAL_COMPARISON_TOKENS)
 }
 
 fn try_consume_comma(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
-    let len = try_extract_token_at_start(&source, &*COMMA_REGEX)?;
-    Some(TokenConsumeResult::new(Token::Comma, len))
+    if source.remaining_text().starts_with(',') {
+        Some(TokenConsumeResult::new(Token::Comma, 1))
+    } else {
+        None
+    }
 }
 
 fn try_consume_statement_separator(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
@@ -173,8 +178,11 @@ fn try_consume_statement_separator(source: &LexerSource<'_>) -> Option<TokenCons
 }
 
 fn try_consume_field_reference(source: &LexerSource<'_>) -> Option<TokenConsumeResult> {
-    let len = try_extract_token_at_start(source, &*FIELD_REFERENCE_REGEX)?;
-    Some(TokenConsumeResult::new(Token::FieldReference, len))
+    if source.remaining_text().starts_with('$') {
+        Some(TokenConsumeResult::new(Token::FieldReference, 1))
+    } else {
+        None
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -190,6 +198,14 @@ impl LexerSource<'_> {
 
     fn following_text(&self, len: usize) -> &str {
         &self.text[self.next_char_idx..self.next_char_idx + len]
+    }
+
+    fn fallible_following_text(&self, len: usize) -> Option<&str> {
+        if self.remaining_text().len() >= len {
+            Some(self.following_text(len))
+        } else {
+            None
+        }
     }
 
     fn advance_by(&mut self, len: usize) {

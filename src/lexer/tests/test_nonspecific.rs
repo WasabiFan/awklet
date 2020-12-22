@@ -87,6 +87,16 @@ fn comparisons() -> Result<(), TokenizeError> {
 }
 
 #[test]
+fn short_final_token() -> Result<(), TokenizeError> {
+    let source = "< >";
+    let tokens = tokenize(source)?;
+
+    assert_eq!(tokens, vec![Token::LeftCaret, Token::RightCaret,]);
+
+    Ok(())
+}
+
+#[test]
 fn leading_newlines() -> Result<(), TokenizeError> {
     let source = "
     BEGIN {
