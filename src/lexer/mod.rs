@@ -1,4 +1,5 @@
 mod token;
+
 pub use token::Token;
 
 use lazy_static::lazy_static;
@@ -148,39 +149,87 @@ fn try_consume_field_reference(current_source: &str) -> Option<(usize, Token)> {
     Some((matched_str.len(), Token::FieldReference))
 }
 
-fn try_consume_token(current_source: &str) -> Option<(usize, Token)> {
-    try_consume_numeric_literal(&current_source)
-        .or_else(|| try_consume_regex_literal(current_source))
-        .or_else(|| try_consume_statement_separator(current_source))
-        .or_else(|| try_consume_brace_or_paren(current_source))
-        .or_else(|| try_consume_comma(current_source))
-        .or_else(|| try_consume_field_reference(current_source))
-        .or_else(|| try_consume_relational_comparison(current_source))
-        .or_else(|| try_consume_math_operator(current_source))
-        .or_else(|| try_consume_string_literal(current_source))
-        .or_else(|| try_consume_identifier(current_source))
+struct LexerState<'s> {
+    source_text: &'s str,
+    next_char_idx: usize,
+    extracted_tokens: Vec<Token>,
 }
 
-fn trim_leading_non_token_whitespace(source: &str) -> &str {
-    let non_token_whitespace: &[_] = &[' ', '\t'];
-    source.trim_start_matches(non_token_whitespace)
+enum LexerStepOutput<'s> {
+    Complete(Vec<Token>),
+    Incomplete(LexerState<'s>),
+}
+
+impl LexerState<'_> {
+    pub fn with_source<'s>(source_text: &'s str) -> LexerState<'s> {
+        let mut lexer = LexerState {
+            source_text,
+            next_char_idx: 0usize,
+            extracted_tokens: Vec::default(),
+        };
+
+        lexer.consume_leading_non_token_whitespace();
+
+        lexer
+    }
+
+    fn remaining_text(&self) -> &str {
+        &self.source_text[self.next_char_idx..]
+    }
+
+    fn try_consume_token(&mut self) -> Result<(), TokenizeError> {
+        let (num_consumed_chars, token) = try_consume_numeric_literal(self.remaining_text())
+            .or_else(|| try_consume_regex_literal(self.remaining_text()))
+            .or_else(|| try_consume_statement_separator(self.remaining_text()))
+            .or_else(|| try_consume_brace_or_paren(self.remaining_text()))
+            .or_else(|| try_consume_comma(self.remaining_text()))
+            .or_else(|| try_consume_field_reference(self.remaining_text()))
+            .or_else(|| try_consume_relational_comparison(self.remaining_text()))
+            .or_else(|| try_consume_math_operator(self.remaining_text()))
+            .or_else(|| try_consume_string_literal(self.remaining_text()))
+            .or_else(|| try_consume_identifier(self.remaining_text()))
+            .ok_or(TokenizeError::SyntaxError)?;
+
+        self.next_char_idx += num_consumed_chars;
+        self.extracted_tokens.push(token);
+
+        Ok(())
+    }
+
+    fn consume_leading_non_token_whitespace(&mut self) {
+        let non_token_whitespace: &[_] = &[' ', '\t'];
+        let remaining_text = self.remaining_text();
+
+        if let Some((0, m)) = remaining_text.match_indices(non_token_whitespace).next() {
+            self.next_char_idx += m.len();
+        }
+    }
+
+    pub fn next<'s>(mut self) -> Result<LexerStepOutput<'s>, TokenizeError>
+    where
+        Self: 's,
+    {
+        self.try_consume_token()?;
+        self.consume_leading_non_token_whitespace();
+
+        if self.remaining_text().is_empty() {
+            Ok(LexerStepOutput::Complete(self.extracted_tokens))
+        } else {
+            Ok(LexerStepOutput::<'s>::Incomplete(self))
+        }
+    }
 }
 
 pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
-    let mut tokens: Vec<Token> = Vec::new();
-    let mut current_source = trim_leading_non_token_whitespace(source);
+    let mut state = LexerState::with_source(source);
+    state.consume_leading_non_token_whitespace();
 
-    while !current_source.is_empty() {
-        let (num_bytes_consumed, tok) =
-            try_consume_token(&current_source).ok_or(TokenizeError::SyntaxError)?;
-
-        current_source = &current_source[num_bytes_consumed..];
-        tokens.push(tok);
-
-        current_source = trim_leading_non_token_whitespace(current_source)
+    loop {
+        match state.next()? {
+            LexerStepOutput::Complete(tokens) => return Ok(tokens),
+            LexerStepOutput::Incomplete(new_state) => state = new_state,
+        }
     }
-
-    Ok(tokens)
 }
 
 #[cfg(test)]
