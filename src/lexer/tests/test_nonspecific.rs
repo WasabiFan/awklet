@@ -1,5 +1,7 @@
-use crate::lexer::{tokenize, Token, TokenizeError};
+use crate::lexer::{tokenize, SpannedToken, Token, TokenizeError};
 use matches::assert_matches;
+
+use super::helpers::TokenSpanCursor;
 
 #[test]
 fn syntax_error_invalid_token() {
@@ -14,17 +16,24 @@ fn basic_awk_program() -> Result<(), TokenizeError> {
         print \"Hello, world!\"
     }";
     let tokens = tokenize(source)?;
+    let mut spans = TokenSpanCursor::new();
 
     assert_eq!(
-        tokens,
-        vec![
-            Token::BeginKeyword,
-            Token::OpenBrace,
-            Token::StatementSeparator,
-            Token::Identifier(String::from("print")),
-            Token::StringLiteral(String::from("Hello, world!")),
-            Token::StatementSeparator,
-            Token::CloseBrace
+        tokens[..],
+        [
+            SpannedToken(Token::BeginKeyword, spans.advance_spanned_and_skip(5, 1)),
+            SpannedToken(Token::OpenBrace, spans.advance_spanned(1)),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(9)),
+            SpannedToken(
+                Token::Identifier(String::from("print")),
+                spans.advance_spanned_and_skip(5, 1)
+            ),
+            SpannedToken(
+                Token::StringLiteral(String::from("Hello, world!")),
+                spans.advance_spanned(15)
+            ),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(5)),
+            SpannedToken(Token::CloseBrace, spans.advance_spanned(1)),
         ]
     );
 
@@ -40,26 +49,45 @@ fn statement_separator() -> Result<(), TokenizeError> {
         getline foo ; print
     }";
     let tokens = tokenize(source)?;
+    let mut spans = TokenSpanCursor::new();
 
     assert_eq!(
-        tokens,
-        vec![
-            Token::BeginKeyword,
-            Token::OpenBrace,
-            Token::StatementSeparator,
-            Token::Identifier(String::from("print")),
-            Token::StringLiteral(String::from("Hello, world!")),
-            Token::StatementSeparator,
-            Token::Identifier(String::from("a")),
-            Token::AssignEquals,
-            Token::NumericLiteral(5.),
-            Token::StatementSeparator, // adjacent StatementSeparators are coalesced together
-            Token::Identifier(String::from("getline")),
-            Token::Identifier(String::from("foo")),
-            Token::StatementSeparator,
-            Token::Identifier(String::from("print")),
-            Token::StatementSeparator,
-            Token::CloseBrace
+        tokens[..],
+        [
+            SpannedToken(Token::BeginKeyword, spans.advance_spanned_and_skip(5, 1)),
+            SpannedToken(Token::OpenBrace, spans.advance_spanned(1)),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(9)),
+            SpannedToken(
+                Token::Identifier(String::from("print")),
+                spans.advance_spanned_and_skip(5, 1)
+            ),
+            SpannedToken(
+                Token::StringLiteral(String::from("Hello, world!")),
+                spans.advance_spanned(15)
+            ),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(9)),
+            SpannedToken(
+                Token::Identifier(String::from("a")),
+                spans.advance_spanned_and_skip(1, 1)
+            ),
+            SpannedToken(Token::AssignEquals, spans.advance_spanned_and_skip(1, 1)),
+            SpannedToken(Token::NumericLiteral(5.), spans.advance_spanned(1)),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(22)), // adjacent StatementSeparators are coalesced together
+            SpannedToken(
+                Token::Identifier(String::from("getline")),
+                spans.advance_spanned_and_skip(7, 1)
+            ),
+            SpannedToken(
+                Token::Identifier(String::from("foo")),
+                spans.advance_spanned_and_skip(3, 1)
+            ),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(2)),
+            SpannedToken(
+                Token::Identifier(String::from("print")),
+                spans.advance_spanned(5)
+            ),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(5)),
+            SpannedToken(Token::CloseBrace, spans.advance_spanned(1)),
         ]
     );
 
@@ -70,16 +98,17 @@ fn statement_separator() -> Result<(), TokenizeError> {
 fn comparisons() -> Result<(), TokenizeError> {
     let source = "< <= == != > >=";
     let tokens = tokenize(source)?;
+    let mut spans = TokenSpanCursor::new();
 
     assert_eq!(
-        tokens,
-        vec![
-            Token::LeftCaret,
-            Token::LessEqual,
-            Token::CompareEquals,
-            Token::BangEqual,
-            Token::RightCaret,
-            Token::GreaterEqual
+        tokens[..],
+        [
+            SpannedToken(Token::LeftCaret, spans.advance_spanned_and_skip(1, 1)),
+            SpannedToken(Token::LessEqual, spans.advance_spanned_and_skip(2, 1)),
+            SpannedToken(Token::CompareEquals, spans.advance_spanned_and_skip(2, 1)),
+            SpannedToken(Token::BangEqual, spans.advance_spanned_and_skip(2, 1)),
+            SpannedToken(Token::RightCaret, spans.advance_spanned_and_skip(1, 1)),
+            SpannedToken(Token::GreaterEqual, spans.advance_spanned(2))
         ]
     );
 
@@ -90,8 +119,15 @@ fn comparisons() -> Result<(), TokenizeError> {
 fn short_final_token() -> Result<(), TokenizeError> {
     let source = "< >";
     let tokens = tokenize(source)?;
+    let mut spans = TokenSpanCursor::new();
 
-    assert_eq!(tokens, vec![Token::LeftCaret, Token::RightCaret,]);
+    assert_eq!(
+        tokens[..],
+        [
+            SpannedToken(Token::LeftCaret, spans.advance_spanned_and_skip(1, 1)),
+            SpannedToken(Token::RightCaret, spans.advance_spanned(1)),
+        ]
+    );
 
     Ok(())
 }
@@ -102,15 +138,16 @@ fn leading_newlines() -> Result<(), TokenizeError> {
     BEGIN {
     }";
     let tokens = tokenize(source)?;
+    let mut spans = TokenSpanCursor::new();
 
     assert_eq!(
-        tokens,
-        vec![
-            Token::StatementSeparator,
-            Token::BeginKeyword,
-            Token::OpenBrace,
-            Token::StatementSeparator,
-            Token::CloseBrace
+        tokens[..],
+        [
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(5)),
+            SpannedToken(Token::BeginKeyword, spans.advance_spanned_and_skip(5, 1)),
+            SpannedToken(Token::OpenBrace, spans.advance_spanned(1)),
+            SpannedToken(Token::StatementSeparator, spans.advance_spanned(5)),
+            SpannedToken(Token::CloseBrace, spans.advance_spanned(1)),
         ]
     );
 

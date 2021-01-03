@@ -1,3 +1,5 @@
+mod helpers;
+
 mod test_braces_parens_operators;
 mod test_identifier;
 mod test_nonspecific;

@@ -2,7 +2,7 @@ mod token;
 
 use std::collections::HashMap;
 
-pub use token::Token;
+pub use token::{SourceSpan, SpannedToken, Token};
 
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -221,11 +221,11 @@ impl LexerSource<'_> {
 
 struct LexerState<'s> {
     source: LexerSource<'s>,
-    extracted_tokens: Vec<Token>,
+    extracted_tokens: Vec<SpannedToken>,
 }
 
 enum LexerStepOutput<'s> {
-    Complete(Vec<Token>),
+    Complete(Vec<SpannedToken>),
     Incomplete(LexerState<'s>),
 }
 
@@ -260,8 +260,10 @@ impl LexerState<'_> {
             .or_else(|| try_consume_identifier(&self.source))
             .ok_or(TokenizeError::SyntaxError)?;
 
+        let span = SourceSpan::new(self.source.next_char_idx, bytes_consumed);
+
         self.source.advance_by(bytes_consumed);
-        self.extracted_tokens.push(token);
+        self.extracted_tokens.push(SpannedToken(token, span));
 
         Ok(())
     }
@@ -291,7 +293,7 @@ impl LexerState<'_> {
     }
 }
 
-pub fn tokenize(source: &str) -> Result<Vec<Token>, TokenizeError> {
+pub fn tokenize(source: &str) -> Result<Vec<SpannedToken>, TokenizeError> {
     let mut state = LexerState::with_source(source);
     state.consume_leading_non_token_whitespace();
 

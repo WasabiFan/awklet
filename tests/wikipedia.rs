@@ -1,7 +1,11 @@
 /// Sample programs taken from https://en.wikipedia.org/wiki/AWK
 mod environment;
 
-use awklet::{evaluator::ProgramEvaluator, lexer::tokenize, parser::parse};
+use awklet::{
+    evaluator::ProgramEvaluator,
+    lexer::{tokenize, SpannedToken},
+    parser::parse,
+};
 use environment::IntegrationTestEnvironment;
 use std::rc::Rc;
 
@@ -9,7 +13,9 @@ use std::rc::Rc;
 fn hello_world() {
     let program = "BEGIN { print \"Hello, world!\" }";
     let tokens = tokenize(program).unwrap();
-    let ast = parse(&tokens[..]).unwrap();
+    // TODO: remove once parser supports ingesting SpannedTokens
+    let unspanned_tokens: Vec<_> = tokens.into_iter().map(|SpannedToken(tok, _)| tok).collect();
+    let ast = parse(&unspanned_tokens[..]).unwrap();
 
     let environment = Rc::new(IntegrationTestEnvironment::default());
     let evaluator = ProgramEvaluator::new(ast, environment.clone());
@@ -29,7 +35,9 @@ fn count_words() {
     }
     END { print NR, words, chars }"#;
     let tokens = tokenize(program).unwrap();
-    let ast = parse(&tokens[..]).unwrap();
+    // TODO: remove once parser supports ingesting SpannedTokens
+    let unspanned_tokens: Vec<_> = tokens.into_iter().map(|SpannedToken(tok, _)| tok).collect();
+    let ast = parse(&unspanned_tokens[..]).unwrap();
 
     let environment = Rc::new(IntegrationTestEnvironment::default());
     let evaluator = ProgramEvaluator::new(ast, environment.clone());
@@ -50,7 +58,9 @@ fn sum_last_word() {
     END { print s + 0 }
     "#;
     let tokens = tokenize(program).unwrap();
-    let ast = parse(&tokens[..]).unwrap();
+    // TODO: remove once parser supports ingesting SpannedTokens
+    let unspanned_tokens: Vec<_> = tokens.into_iter().map(|SpannedToken(tok, _)| tok).collect();
+    let ast = parse(&unspanned_tokens[..]).unwrap();
 
     let environment = Rc::new(IntegrationTestEnvironment::default());
     let evaluator = ProgramEvaluator::new(ast, environment.clone());

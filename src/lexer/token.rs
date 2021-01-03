@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // Literals
@@ -52,3 +54,33 @@ pub enum Token {
     MinusEquals,
     // TODO: misc other assignments
 }
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct SourceSpan {
+    pub start: usize,
+    pub len: usize,
+}
+
+impl SourceSpan {
+    pub fn new(start: usize, len: usize) -> Self {
+        Self { start, len }
+    }
+}
+
+impl From<SourceSpan> for Range<usize> {
+    fn from(span: SourceSpan) -> Self {
+        span.start..span.start + span.len
+    }
+}
+
+impl From<Range<usize>> for SourceSpan {
+    fn from(range: Range<usize>) -> Self {
+        SourceSpan {
+            start: range.start,
+            len: range.end - range.start,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct SpannedToken(pub Token, pub SourceSpan);

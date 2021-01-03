@@ -36,7 +36,7 @@ mod tests {
         parse,
         parse_error::ParseError,
     };
-    use crate::lexer::tokenize;
+    use crate::lexer::{tokenize, SpannedToken};
 
     #[test]
     fn parse_word_count() -> Result<(), ParseError> {
@@ -47,7 +47,9 @@ mod tests {
         END { print NR, words, chars }";
 
         let tokens = tokenize(program).unwrap();
-        let ast = parse(&tokens[..])?;
+        // TODO: remove once parser supports ingesting SpannedTokens
+        let unspanned_tokens: Vec<_> = tokens.into_iter().map(|SpannedToken(tok, _)| tok).collect();
+        let ast = parse(&unspanned_tokens[..])?;
 
         assert_eq!(
             ast,
@@ -96,7 +98,9 @@ mod tests {
         {}";
 
         let tokens = tokenize(program).unwrap();
-        let ast = parse(&tokens[..])?;
+        // TODO: remove once parser supports ingesting SpannedTokens
+        let unspanned_tokens: Vec<_> = tokens.into_iter().map(|SpannedToken(tok, _)| tok).collect();
+        let ast = parse(&unspanned_tokens[..])?;
 
         assert_eq!(
             ast,
